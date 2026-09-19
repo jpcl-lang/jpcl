@@ -1,6 +1,6 @@
-# jpml-go
+# jpcl-go
 
-Go package for JPML
+Go package for JPCL
 
 **A configuration language that borrows TOML's sections and JSON's nesting.**
 
@@ -29,11 +29,11 @@ package main
 import (
 	"fmt"
 
-	"github.com/jpml-lang/jpml-go"
+	"github.com/jpcl-lang/jpcl-go"
 )
 
 func main() {
-	data, err := jpml.Load("data/servers.jp", jpml.ParseOptions{})
+	data, err := jpcl.Load("data/servers.jp", jpcl.ParseOptions{})
 	if err != nil {
 		panic(err)
 	}
@@ -47,7 +47,7 @@ Go package's API, which follows the same rules as the Python and TypeScript
 implementations but leans on Go idioms rather than mirroring their syntax.
 
 ```bash
-go get github.com/jpml-lang/jpml-go
+go get github.com/jpcl-lang/jpcl-go
 ```
 
 No runtime dependencies -- uses only the standard library. See `go.mod` for
@@ -62,7 +62,7 @@ as `any`:
 
 | `.jp` type | Go type |
 | --- | --- |
-| Object / section | `*jpml.Object` |
+| Object / section | `*jpcl.Object` |
 | Array | `[]any` |
 | String | `string` |
 | Integer | `int64` |
@@ -70,12 +70,12 @@ as `any`:
 | Boolean | `bool` |
 | Null / empty value | `nil` |
 
-`jpml.Object` is an **ordered map** — a small type this package defines
+`jpcl.Object` is an **ordered map** — a small type this package defines
 itself, because Go's built-in `map` does not preserve insertion order and
 the writer needs to reproduce keys in the order they were written:
 
 ```go
-obj := jpml.NewObject()
+obj := jpcl.NewObject()
 obj.Set("prefix", "!")
 obj.Set("id", int64(1234567890))
 
@@ -101,8 +101,8 @@ integers.
 ## Reading
 
 ```go
-data, err := jpml.Load("data/servers.jp", jpml.ParseOptions{})   // from a path
-data, err := jpml.Parse(text, jpml.ParseOptions{})                // from a string
+data, err := jpcl.Load("data/servers.jp", jpcl.ParseOptions{})   // from a path
+data, err := jpcl.Parse(text, jpcl.ParseOptions{})                // from a string
 ```
 
 `ParseOptions`:
@@ -114,7 +114,7 @@ type ParseOptions struct {
 }
 ```
 
-Every error from a malformed document is a `*jpml.DecodeError`, which points
+Every error from a malformed document is a `*jpcl.DecodeError`, which points
 at the exact offending character:
 
 ```
@@ -127,30 +127,30 @@ It carries `Message`, `Doc`, `Pos`, `Line`, `Col` and `Filename` fields, and
 implements the standard `error` interface, so:
 
 ```go
-data, err := jpml.Load(path, jpml.ParseOptions{})
-var decErr *jpml.DecodeError
+data, err := jpcl.Load(path, jpcl.ParseOptions{})
+var decErr *jpcl.DecodeError
 if errors.As(err, &decErr) {
 	fmt.Println(decErr.Line, decErr.Col)
 }
 ```
 
 By default a repeated key is an error rather than a silent overwrite; pass
-`DuplicateKeys: jpml.DuplicateFirst` or `jpml.DuplicateLast` if you would
+`DuplicateKeys: jpcl.DuplicateFirst` or `jpcl.DuplicateLast` if you would
 rather it not be.
 
 ### Load a whole folder
 
 ```go
-config, err := jpml.LoadDir("data", "", false, jpml.ParseOptions{})
-// map[string]*jpml.Object{"servers": ..., "roles": ...}
+config, err := jpcl.LoadDir("data", "", false, jpcl.ParseOptions{})
+// map[string]*jpcl.Object{"servers": ..., "roles": ...}
 
-guilds, err := jpml.LoadDir("data/guilds", "", false, jpml.ParseOptions{})
-everything, err := jpml.LoadDir("data", "", true, jpml.ParseOptions{}) // recursive
+guilds, err := jpcl.LoadDir("data/guilds", "", false, jpcl.ParseOptions{})
+everything, err := jpcl.LoadDir("data", "", true, jpcl.ParseOptions{}) // recursive
 ```
 
 Each file becomes one entry, named after the file (without its `.jp` suffix).
 The returned value is a plain Go `map`, since it is a lookup table rather
-than a document you write back out — unlike `*jpml.Object`, its iteration
+than a document you write back out — unlike `*jpcl.Object`, its iteration
 order is not meaningful.
 
 ---
@@ -158,8 +158,8 @@ order is not meaningful.
 ## Writing
 
 ```go
-text, err := jpml.Dumps(obj, jpml.DefaultStringifyOptions())
-err = jpml.Dump(obj, "data/servers.jp", true, jpml.DefaultStringifyOptions()) // atomic write
+text, err := jpcl.Dumps(obj, jpcl.DefaultStringifyOptions())
+err = jpcl.Dump(obj, "data/servers.jp", true, jpcl.DefaultStringifyOptions()) // atomic write
 ```
 
 `StringifyOptions`:
@@ -180,18 +180,18 @@ point — build on it rather than a bare `StringifyOptions{}`, whose zero
 values (`Indent: 0, Width: 0`) are indistinguishable from an explicit choice:
 
 ```go
-opts := jpml.DefaultStringifyOptions()
+opts := jpcl.DefaultStringifyOptions()
 opts.SortKeys = true
-text, err := jpml.Dumps(obj, opts)
+text, err := jpcl.Dumps(obj, opts)
 ```
 
 Writes are atomic by default when going through `Dump`: the file goes to a
 temporary neighbour and is renamed into place, so a crash or a concurrent
 reader never sees half a config.
 
-Every write-side error is a `*jpml.EncodeError` — an unsupported type
+Every write-side error is a `*jpcl.EncodeError` — an unsupported type
 (nothing matches `nil`/`bool`/`string`/an integer type/`float32`/`float64`/
-`*jpml.Object`/`[]any`), a circular reference, or binary data (`[]byte`,
+`*jpcl.Object`/`[]any`), a circular reference, or binary data (`[]byte`,
 which has no `.jp` representation; convert it to a string first).
 
 ---
@@ -200,7 +200,7 @@ which has no `.jp` representation; convert it to a string first).
 
 `Dumps` is deterministic, so a document written twice is byte-identical:
 
-* every top-level `*jpml.Object` value becomes a `[SECTION]`, separated by a
+* every top-level `*jpcl.Object` value becomes a `[SECTION]`, separated by a
   blank line;
 * section entries sit one per line, with no separating commas;
 * nested objects always expand across lines, `{}` being the only inline
@@ -225,8 +225,8 @@ dotted-path access and atomic saving. Its backing store is a public field,
 `cfg["key"]`:
 
 ```go
-cfg, err := jpml.LoadJPConfig("data/servers.jp", true, jpml.ConfigOptions{
-	Write: jpml.DefaultStringifyOptions(),
+cfg, err := jpcl.LoadJPConfig("data/servers.jp", true, jpcl.ConfigOptions{
+	Write: jpcl.DefaultStringifyOptions(),
 }) // missingOK: true -- an empty config bound to the path if it doesn't exist yet
 
 prefix, _ := cfg.Data.Get("SERVER_ID") // plain Object access
@@ -244,7 +244,7 @@ cfg.ToDict()             // deep copy as a plain *Object
 Unlike the Python and TypeScript versions, formatting options passed to
 `ConfigOptions.Write` are fixed at construction time — `Save`/`Dumps` always
 use them, with no per-call override, again to avoid the zero-value-ambiguity
-problem. Call the package-level `jpml.Dumps(cfg.Data, customOpts)` directly
+problem. Call the package-level `jpcl.Dumps(cfg.Data, customOpts)` directly
 for a one-off different format.
 
 ---
@@ -252,19 +252,19 @@ for a one-off different format.
 ## Command line
 
 ```bash
-go install github.com/jpml-lang/jpml-go/cmd/jpml@latest
+go install github.com/jpcl-lang/jpcl-go/cmd/jpcl@latest
 
-jpml check data/*.jp                      # validate; non-zero exit on failure
-jpml fmt -w data/servers.jp               # reformat in place
-jpml get data/servers.jp SERVER_ID.prefix # read one value
-jpml to-json -o out.json data/servers.jp
-jpml from-json -o data/servers.jp out.json
+jpcl check data/*.jp                      # validate; non-zero exit on failure
+jpcl fmt -w data/servers.jp               # reformat in place
+jpcl get data/servers.jp SERVER_ID.prefix # read one value
+jpcl to-json -o out.json data/servers.jp
+jpcl from-json -o data/servers.jp out.json
 ```
 
 `-` reads stdin in place of a filename.
 
-Flags must come **before** positional arguments (`jpml fmt -w file.jp`, not
-`jpml fmt file.jp -w`) — a limitation of Go's standard `flag` package, which
+Flags must come **before** positional arguments (`jpcl fmt -w file.jp`, not
+`jpcl fmt file.jp -w`) — a limitation of Go's standard `flag` package, which
 stops looking for flags at the first non-flag argument. This is the one
 place the Go CLI's ergonomics are a step behind the Python (`argparse`) and
 TypeScript (`util.parseArgs`) versions, which allow either order.
@@ -273,4 +273,4 @@ TypeScript (`util.parseArgs`) versions, which allow either order.
 
 ## Licence
 
-MIT, same as the rest of the JPML implementations.
+MIT, same as the rest of the JPCL implementations.

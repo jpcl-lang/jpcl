@@ -1,5 +1,5 @@
 // values.go
-package jpml
+package jpcl
 
 type Object struct {
 	keys   []string

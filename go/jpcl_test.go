@@ -1,5 +1,5 @@
-// jpml_test.go
-package jpml_test
+// jpcl_test.go
+package jpcl_test
 
 import (
 	"errors"
@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	jpml "github.com/jpml-lang/jpml-go"
+	jpcl "github.com/jpcl-lang/jpcl-go"
 )
 
 const sample = `[SERVER_ID]
@@ -27,15 +27,15 @@ modules: {
 }
 `
 
-func obj(pairs ...any) *jpml.Object {
-	o := jpml.NewObject()
+func obj(pairs ...any) *jpcl.Object {
+	o := jpcl.NewObject()
 	for i := 0; i < len(pairs); i += 2 {
 		o.Set(pairs[i].(string), pairs[i+1])
 	}
 	return o
 }
 
-func sampleData() *jpml.Object {
+func sampleData() *jpcl.Object {
 	return obj(
 		"SERVER_ID", obj(
 			"config", obj(
@@ -50,9 +50,9 @@ func sampleData() *jpml.Object {
 	)
 }
 
-func mustParse(t *testing.T, text string) *jpml.Object {
+func mustParse(t *testing.T, text string) *jpcl.Object {
 	t.Helper()
-	obj, err := jpml.Parse(text, jpml.ParseOptions{})
+	obj, err := jpcl.Parse(text, jpcl.ParseOptions{})
 	if err != nil {
 		t.Fatalf("Parse(%q): %v", text, err)
 	}
@@ -119,7 +119,7 @@ func TestEntriesSeparatedByNewlinesCommasOrBoth(t *testing.T) {
 func TestMultipleKeysPerSectionKeepOrder(t *testing.T) {
 	data := mustParse(t, "[s]\nz: 1\na: 2\nm: 3\n")
 	s, _ := data.Get("s")
-	got := s.(*jpml.Object).Keys()
+	got := s.(*jpcl.Object).Keys()
 	want := []string{"z", "a", "m"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %v, want %v", got, want)
@@ -170,7 +170,7 @@ func TestScalarTypes(t *testing.T) {
 func TestNonFiniteFloats(t *testing.T) {
 	data := mustParse(t, "[s]\na: inf\nb: -inf\nc: nan\n")
 	s, _ := data.Get("s")
-	sec := s.(*jpml.Object)
+	sec := s.(*jpcl.Object)
 	a, _ := sec.Get("a")
 	b, _ := sec.Get("b")
 	c, _ := sec.Get("c")
@@ -188,7 +188,7 @@ func TestNonFiniteFloats(t *testing.T) {
 func TestBackslashNewlineContinuesAString(t *testing.T) {
 	data := mustParse(t, "[s]\na: \"one \\\n     two\"\n")
 	s, _ := data.Get("s")
-	a, _ := s.(*jpml.Object).Get("a")
+	a, _ := s.(*jpcl.Object).Get("a")
 	if a != "one two" {
 		t.Fatalf("a -> %#v", a)
 	}
@@ -197,7 +197,7 @@ func TestBackslashNewlineContinuesAString(t *testing.T) {
 func TestSimpleStringEscapes(t *testing.T) {
 	data := mustParse(t, "[s]\na: \"tab\\there\\nline \\\\ \\\"q\\\"\"\n")
 	s, _ := data.Get("s")
-	a, _ := s.(*jpml.Object).Get("a")
+	a, _ := s.(*jpcl.Object).Get("a")
 	want := "tab\there\nline \\ \"q\""
 	if a != want {
 		t.Fatalf("a -> %#v, want %#v", a, want)
@@ -240,11 +240,11 @@ func TestQuotedHeaderSegmentIsNotSplit(t *testing.T) {
 func TestDeeplyNestedContainers(t *testing.T) {
 	data := mustParse(t, "[s]\na: {b: [{c: [1, {d: 2}]}]}\n")
 	s, _ := data.Get("s")
-	a, _ := s.(*jpml.Object).Get("a")
-	b, _ := a.(*jpml.Object).Get("b")
-	first := b.([]any)[0].(*jpml.Object)
+	a, _ := s.(*jpcl.Object).Get("a")
+	b, _ := a.(*jpcl.Object).Get("b")
+	first := b.([]any)[0].(*jpcl.Object)
 	c, _ := first.Get("c")
-	inner := c.([]any)[1].(*jpml.Object)
+	inner := c.([]any)[1].(*jpcl.Object)
 	d, _ := inner.Get("d")
 	if d != int64(2) {
 		t.Fatalf("d -> %#v", d)
@@ -254,10 +254,10 @@ func TestDeeplyNestedContainers(t *testing.T) {
 func TestEmptyContainers(t *testing.T) {
 	data := mustParse(t, "[s]\na: {}\nb: []\n")
 	s, _ := data.Get("s")
-	sec := s.(*jpml.Object)
+	sec := s.(*jpcl.Object)
 	a, _ := sec.Get("a")
 	b, _ := sec.Get("b")
-	if a.(*jpml.Object).Len() != 0 {
+	if a.(*jpcl.Object).Len() != 0 {
 		t.Fatalf("a -> %#v", a)
 	}
 	if len(b.([]any)) != 0 {
@@ -293,7 +293,7 @@ func TestCRLFAndBOMAreHandled(t *testing.T) {
 // -- duplicate keys -----------------------------------------------------
 
 func TestDuplicateKeyRaisesByDefault(t *testing.T) {
-	_, err := jpml.Parse("[s]\na: 1\na: 2\n", jpml.ParseOptions{})
+	_, err := jpcl.Parse("[s]\na: 1\na: 2\n", jpcl.ParseOptions{})
 	if err == nil || !strings.Contains(err.Error(), "duplicate key") {
 		t.Fatalf("err -> %v", err)
 	}
@@ -301,36 +301,36 @@ func TestDuplicateKeyRaisesByDefault(t *testing.T) {
 
 func TestDuplicateKeyPolicies(t *testing.T) {
 	text := "[s]\na: 1\na: 2\n"
-	first, err := jpml.Parse(text, jpml.ParseOptions{DuplicateKeys: jpml.DuplicateFirst})
+	first, err := jpcl.Parse(text, jpcl.ParseOptions{DuplicateKeys: jpcl.DuplicateFirst})
 	if err != nil {
 		t.Fatal(err)
 	}
 	s, _ := first.Get("s")
-	a, _ := s.(*jpml.Object).Get("a")
+	a, _ := s.(*jpcl.Object).Get("a")
 	if a != int64(1) {
 		t.Fatalf("first -> %#v", a)
 	}
 
-	last, err := jpml.Parse(text, jpml.ParseOptions{DuplicateKeys: jpml.DuplicateLast})
+	last, err := jpcl.Parse(text, jpcl.ParseOptions{DuplicateKeys: jpcl.DuplicateLast})
 	if err != nil {
 		t.Fatal(err)
 	}
 	s, _ = last.Get("s")
-	a, _ = s.(*jpml.Object).Get("a")
+	a, _ = s.(*jpcl.Object).Get("a")
 	if a != int64(2) {
 		t.Fatalf("last -> %#v", a)
 	}
 }
 
 func TestDuplicateSectionRaises(t *testing.T) {
-	_, err := jpml.Parse("[s]\na: 1\n\n[s]\nb: 2\n", jpml.ParseOptions{})
+	_, err := jpcl.Parse("[s]\na: 1\n\n[s]\nb: 2\n", jpcl.ParseOptions{})
 	if err == nil || !strings.Contains(err.Error(), "is defined twice") {
 		t.Fatalf("err -> %v", err)
 	}
 }
 
 func TestDuplicateSectionMergesUnderLastPolicy(t *testing.T) {
-	data, err := jpml.Parse("[s]\na: 1\n\n[s]\nb: 2\n", jpml.ParseOptions{DuplicateKeys: jpml.DuplicateLast})
+	data, err := jpcl.Parse("[s]\na: 1\n\n[s]\nb: 2\n", jpcl.ParseOptions{DuplicateKeys: jpcl.DuplicateLast})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -341,7 +341,7 @@ func TestDuplicateSectionMergesUnderLastPolicy(t *testing.T) {
 }
 
 func TestInvalidDuplicatePolicyRejected(t *testing.T) {
-	_, err := jpml.Parse("", jpml.ParseOptions{DuplicateKeys: "nope"})
+	_, err := jpcl.Parse("", jpcl.ParseOptions{DuplicateKeys: "nope"})
 	if err == nil || !strings.Contains(err.Error(), "duplicateKeys") {
 		t.Fatalf("err -> %v", err)
 	}
@@ -365,7 +365,7 @@ func TestSyntaxErrors(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.message, func(t *testing.T) {
-			_, err := jpml.Parse(c.text, jpml.ParseOptions{})
+			_, err := jpcl.Parse(c.text, jpcl.ParseOptions{})
 			if err == nil || !strings.Contains(err.Error(), c.message) {
 				t.Fatalf("Parse(%q) -> %v, want containing %q", c.text, err, c.message)
 			}
@@ -374,8 +374,8 @@ func TestSyntaxErrors(t *testing.T) {
 }
 
 func TestErrorReportsLineColumnAndSource(t *testing.T) {
-	_, err := jpml.Parse("[s]\nprefix \"!\"\n", jpml.ParseOptions{Filename: "servers.jp"})
-	var decErr *jpml.DecodeError
+	_, err := jpcl.Parse("[s]\nprefix \"!\"\n", jpcl.ParseOptions{Filename: "servers.jp"})
+	var decErr *jpcl.DecodeError
 	if !errors.As(err, &decErr) {
 		t.Fatalf("err -> %T %v", err, err)
 	}
@@ -391,7 +391,7 @@ func TestErrorReportsLineColumnAndSource(t *testing.T) {
 }
 
 func TestSectionCannotShadowAScalar(t *testing.T) {
-	_, err := jpml.Parse("a: 1\n\n[a.b]\nx: 1\n", jpml.ParseOptions{})
+	_, err := jpcl.Parse("a: 1\n\n[a.b]\nx: 1\n", jpcl.ParseOptions{})
 	if err == nil || !strings.Contains(err.Error(), "already a non-section value") {
 		t.Fatalf("err -> %v", err)
 	}
@@ -399,7 +399,7 @@ func TestSectionCannotShadowAScalar(t *testing.T) {
 
 func TestNestingDepthIsCapped(t *testing.T) {
 	text := "[s]\na: " + strings.Repeat("[", 500) + strings.Repeat("]", 500) + "\n"
-	_, err := jpml.Parse(text, jpml.ParseOptions{})
+	_, err := jpcl.Parse(text, jpcl.ParseOptions{})
 	if err == nil || !strings.Contains(err.Error(), "nesting deeper than") {
 		t.Fatalf("err -> %v", err)
 	}
@@ -408,7 +408,7 @@ func TestNestingDepthIsCapped(t *testing.T) {
 // -- writing ----------------------------------------------------------------
 
 func TestDumpsMatchesTheReferenceStyle(t *testing.T) {
-	text, err := jpml.Dumps(sampleData(), jpml.DefaultStringifyOptions())
+	text, err := jpcl.Dumps(sampleData(), jpcl.DefaultStringifyOptions())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -418,11 +418,11 @@ func TestDumpsMatchesTheReferenceStyle(t *testing.T) {
 }
 
 func TestRoundTripIsStable(t *testing.T) {
-	once, err := jpml.Dumps(mustParse(t, sample), jpml.DefaultStringifyOptions())
+	once, err := jpcl.Dumps(mustParse(t, sample), jpcl.DefaultStringifyOptions())
 	if err != nil {
 		t.Fatal(err)
 	}
-	twice, err := jpml.Dumps(mustParse(t, once), jpml.DefaultStringifyOptions())
+	twice, err := jpcl.Dumps(mustParse(t, once), jpcl.DefaultStringifyOptions())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -433,7 +433,7 @@ func TestRoundTripIsStable(t *testing.T) {
 
 func TestNoneIsEmptyInObjectsAndNullInArrays(t *testing.T) {
 	data := obj("s", obj("a", nil, "b", []any{nil, int64(1)}))
-	text, err := jpml.Dumps(data, jpml.DefaultStringifyOptions())
+	text, err := jpcl.Dumps(data, jpcl.DefaultStringifyOptions())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -451,7 +451,7 @@ func TestLongArraysBreakOntoMultipleLines(t *testing.T) {
 		ids[i] = int64(i)
 	}
 	data := obj("s", obj("ids", ids))
-	text, err := jpml.Dumps(data, jpml.DefaultStringifyOptions())
+	text, err := jpcl.Dumps(data, jpcl.DefaultStringifyOptions())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -460,7 +460,7 @@ func TestLongArraysBreakOntoMultipleLines(t *testing.T) {
 	}
 	got := mustParse(t, text)
 	s, _ := got.Get("s")
-	gotIDs, _ := s.(*jpml.Object).Get("ids")
+	gotIDs, _ := s.(*jpcl.Object).Get("ids")
 	if !reflect.DeepEqual(gotIDs, ids) {
 		t.Fatalf("got %#v, want %#v", gotIDs, ids)
 	}
@@ -468,7 +468,7 @@ func TestLongArraysBreakOntoMultipleLines(t *testing.T) {
 
 func TestScalarRootsAreHoistedAboveSections(t *testing.T) {
 	data := obj("s", obj("a", int64(1)), "version", int64(2))
-	text, err := jpml.Dumps(data, jpml.DefaultStringifyOptions())
+	text, err := jpcl.Dumps(data, jpcl.DefaultStringifyOptions())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -479,7 +479,7 @@ func TestScalarRootsAreHoistedAboveSections(t *testing.T) {
 
 func TestKeysAreQuotedOnlyWhenNecessary(t *testing.T) {
 	data := obj("ok_key-1", obj("plain", int64(1), "needs quotes", int64(2), "", int64(3)))
-	text, err := jpml.Dumps(data, jpml.DefaultStringifyOptions())
+	text, err := jpcl.Dumps(data, jpcl.DefaultStringifyOptions())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -495,27 +495,27 @@ func TestKeysAreQuotedOnlyWhenNecessary(t *testing.T) {
 
 func TestStringValuesAreEscaped(t *testing.T) {
 	value := "quote \" backslash \\ newline \n tab \t bell \a"
-	text, err := jpml.Dumps(obj("s", obj("a", value)), jpml.DefaultStringifyOptions())
+	text, err := jpcl.Dumps(obj("s", obj("a", value)), jpcl.DefaultStringifyOptions())
 	if err != nil {
 		t.Fatal(err)
 	}
 	got := mustParse(t, text)
 	s, _ := got.Get("s")
-	a, _ := s.(*jpml.Object).Get("a")
+	a, _ := s.(*jpcl.Object).Get("a")
 	if a != value {
 		t.Fatalf("got %q, want %q", a, value)
 	}
 }
 
 func TestEnsureASCIIOption(t *testing.T) {
-	withASCII, err := jpml.Dumps(obj("s", obj("a", "é")), jpml.StringifyOptions{Indent: 2, Width: 88, EnsureASCII: true})
+	withASCII, err := jpcl.Dumps(obj("s", obj("a", "é")), jpcl.StringifyOptions{Indent: 2, Width: 88, EnsureASCII: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if strings.Contains(withASCII, "é") {
 		t.Fatalf("expected no literal 'é' with EnsureASCII: %s", withASCII)
 	}
-	without, err := jpml.Dumps(obj("s", obj("a", "é")), jpml.DefaultStringifyOptions())
+	without, err := jpcl.Dumps(obj("s", obj("a", "é")), jpcl.DefaultStringifyOptions())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -526,7 +526,7 @@ func TestEnsureASCIIOption(t *testing.T) {
 
 func TestIndentAndSortKeysOptions(t *testing.T) {
 	data := obj("s", obj("b", int64(1), "a", obj("z", int64(1))))
-	text, err := jpml.Dumps(data, jpml.StringifyOptions{Indent: 4, Width: 88, SortKeys: true})
+	text, err := jpcl.Dumps(data, jpcl.StringifyOptions{Indent: 4, Width: 88, SortKeys: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -540,7 +540,7 @@ func TestIndentAndSortKeysOptions(t *testing.T) {
 
 func TestWidthOption(t *testing.T) {
 	data := obj("s", obj("a", []any{int64(1), int64(2), int64(3)}))
-	text, err := jpml.Dumps(data, jpml.StringifyOptions{Indent: 2, Width: 8})
+	text, err := jpcl.Dumps(data, jpcl.StringifyOptions{Indent: 2, Width: 8})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -553,53 +553,53 @@ func TestWidthOption(t *testing.T) {
 type unsupportedType struct{}
 
 func TestUnserialisableTypeRaises(t *testing.T) {
-	_, err := jpml.Dumps(obj("s", obj("a", unsupportedType{})), jpml.DefaultStringifyOptions())
-	var encErr *jpml.EncodeError
+	_, err := jpcl.Dumps(obj("s", obj("a", unsupportedType{})), jpcl.DefaultStringifyOptions())
+	var encErr *jpcl.EncodeError
 	if !errors.As(err, &encErr) || !strings.Contains(err.Error(), "not representable") {
 		t.Fatalf("err -> %v", err)
 	}
 }
 
 func TestDefaultHookConvertsUnknownTypes(t *testing.T) {
-	opts := jpml.DefaultStringifyOptions()
+	opts := jpcl.DefaultStringifyOptions()
 	opts.Default = func(v any) any {
 		if _, ok := v.(unsupportedType); ok {
 			return "converted"
 		}
 		return v
 	}
-	text, err := jpml.Dumps(obj("s", obj("when", unsupportedType{})), opts)
+	text, err := jpcl.Dumps(obj("s", obj("when", unsupportedType{})), opts)
 	if err != nil {
 		t.Fatal(err)
 	}
 	got := mustParse(t, text)
 	s, _ := got.Get("s")
-	when, _ := s.(*jpml.Object).Get("when")
+	when, _ := s.(*jpcl.Object).Get("when")
 	if when != "converted" {
 		t.Fatalf("when -> %#v", when)
 	}
 }
 
 func TestDefaultHookMustConvert(t *testing.T) {
-	opts := jpml.DefaultStringifyOptions()
+	opts := jpcl.DefaultStringifyOptions()
 	opts.Default = func(v any) any { return v }
-	_, err := jpml.Dumps(obj("s", obj("a", unsupportedType{})), opts)
+	_, err := jpcl.Dumps(obj("s", obj("a", unsupportedType{})), opts)
 	if err == nil || !strings.Contains(err.Error(), "unconverted") {
 		t.Fatalf("err -> %v", err)
 	}
 }
 
 func TestBinaryDataIsRejectedWithAHint(t *testing.T) {
-	_, err := jpml.Dumps(obj("s", obj("a", []byte("x"))), jpml.DefaultStringifyOptions())
+	_, err := jpcl.Dumps(obj("s", obj("a", []byte("x"))), jpcl.DefaultStringifyOptions())
 	if err == nil || !strings.Contains(err.Error(), "binary data") {
 		t.Fatalf("err -> %v", err)
 	}
 }
 
 func TestCircularReferenceIsDetected(t *testing.T) {
-	section := jpml.NewObject()
+	section := jpcl.NewObject()
 	section.Set("self", section)
-	_, err := jpml.Dumps(obj("s", section), jpml.DefaultStringifyOptions())
+	_, err := jpcl.Dumps(obj("s", section), jpcl.DefaultStringifyOptions())
 	if err == nil || !strings.Contains(err.Error(), "circular reference") {
 		t.Fatalf("err -> %v", err)
 	}
@@ -607,7 +607,7 @@ func TestCircularReferenceIsDetected(t *testing.T) {
 
 func TestSharedNonCircularReferencesAreFine(t *testing.T) {
 	shared := []any{int64(1), int64(2)}
-	text, err := jpml.Dumps(obj("s", obj("a", shared, "b", shared)), jpml.DefaultStringifyOptions())
+	text, err := jpcl.Dumps(obj("s", obj("a", shared, "b", shared)), jpcl.DefaultStringifyOptions())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -618,7 +618,7 @@ func TestSharedNonCircularReferencesAreFine(t *testing.T) {
 }
 
 func TestDumpsOfEmptyDocument(t *testing.T) {
-	text, err := jpml.Dumps(jpml.NewObject(), jpml.DefaultStringifyOptions())
+	text, err := jpcl.Dumps(jpcl.NewObject(), jpcl.DefaultStringifyOptions())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -635,7 +635,7 @@ func TestLoadAndDumpPaths(t *testing.T) {
 	if err := os.WriteFile(p, []byte(sample), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	data, err := jpml.Load(p, jpml.ParseOptions{})
+	data, err := jpcl.Load(p, jpcl.ParseOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -643,7 +643,7 @@ func TestLoadAndDumpPaths(t *testing.T) {
 		t.Fatalf("got %#v", data)
 	}
 	out := filepath.Join(dir, "copy.jp")
-	if err := jpml.Dump(data, out, true, jpml.DefaultStringifyOptions()); err != nil {
+	if err := jpcl.Dump(data, out, true, jpcl.DefaultStringifyOptions()); err != nil {
 		t.Fatal(err)
 	}
 	got, err := os.ReadFile(out)
@@ -658,7 +658,7 @@ func TestLoadAndDumpPaths(t *testing.T) {
 func TestDumpIsAtomicAndLeavesNoTempFiles(t *testing.T) {
 	dir := t.TempDir()
 	p := filepath.Join(dir, "a.jp")
-	if err := jpml.Dump(obj("s", obj("a", int64(1))), p, true, jpml.DefaultStringifyOptions()); err != nil {
+	if err := jpcl.Dump(obj("s", obj("a", int64(1))), p, true, jpcl.DefaultStringifyOptions()); err != nil {
 		t.Fatal(err)
 	}
 	entries, err := os.ReadDir(dir)
@@ -677,10 +677,10 @@ func TestDumpIsAtomicAndLeavesNoTempFiles(t *testing.T) {
 func TestDumpCreatesMissingParentDirectories(t *testing.T) {
 	dir := t.TempDir()
 	p := filepath.Join(dir, "nested", "deep", "a.jp")
-	if err := jpml.Dump(obj("s", obj("a", int64(1))), p, true, jpml.DefaultStringifyOptions()); err != nil {
+	if err := jpcl.Dump(obj("s", obj("a", int64(1))), p, true, jpcl.DefaultStringifyOptions()); err != nil {
 		t.Fatal(err)
 	}
-	data, err := jpml.Load(p, jpml.ParseOptions{})
+	data, err := jpcl.Load(p, jpcl.ParseOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -695,7 +695,7 @@ func TestErrorFromAFileNamesTheFile(t *testing.T) {
 	if err := os.WriteFile(p, []byte("[s]\na 1\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	_, err := jpml.Load(p, jpml.ParseOptions{})
+	_, err := jpcl.Load(p, jpcl.ParseOptions{})
 	if err == nil || !strings.Contains(err.Error(), "broken.jp") {
 		t.Fatalf("err -> %v", err)
 	}
@@ -707,7 +707,7 @@ func TestLoadDir(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "roles.jp"), []byte("[r]\na: 1\n"), 0o644)
 	os.WriteFile(filepath.Join(dir, "ignored.txt"), []byte("nope"), 0o644)
 
-	loaded, err := jpml.LoadDir(dir, "", false, jpml.ParseOptions{})
+	loaded, err := jpcl.LoadDir(dir, "", false, jpcl.ParseOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -724,7 +724,7 @@ func TestLoadDirRecursive(t *testing.T) {
 	os.Mkdir(filepath.Join(dir, "guilds"), 0o755)
 	os.WriteFile(filepath.Join(dir, "guilds", "a.jp"), []byte("[s]\nx: 1\n"), 0o644)
 
-	loaded, err := jpml.LoadDir(dir, "", true, jpml.ParseOptions{})
+	loaded, err := jpcl.LoadDir(dir, "", true, jpcl.ParseOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -735,7 +735,7 @@ func TestLoadDirRecursive(t *testing.T) {
 }
 
 func TestLoadDirMissingDirectory(t *testing.T) {
-	_, err := jpml.LoadDir(filepath.Join(t.TempDir(), "nope"), "", false, jpml.ParseOptions{})
+	_, err := jpcl.LoadDir(filepath.Join(t.TempDir(), "nope"), "", false, jpcl.ParseOptions{})
 	if err == nil {
 		t.Fatal("expected an error")
 	}
@@ -744,7 +744,7 @@ func TestLoadDirMissingDirectory(t *testing.T) {
 // -- JPConfig -------------------------------------------------------------
 
 func TestConfigDottedPaths(t *testing.T) {
-	cfg := jpml.NewJPConfig(mustParse(t, sample), jpml.ConfigOptions{})
+	cfg := jpcl.NewJPConfig(mustParse(t, sample), jpcl.ConfigOptions{})
 	users := cfg.GetPath("SERVER_ID.config.disabled_users", nil)
 	want := []any{int64(9892), int64(82082), int64(8209)}
 	if !reflect.DeepEqual(users, want) {
@@ -765,7 +765,7 @@ func TestConfigDottedPaths(t *testing.T) {
 }
 
 func TestConfigSetPathCreatesSections(t *testing.T) {
-	cfg := jpml.NewJPConfig(nil, jpml.ConfigOptions{})
+	cfg := jpcl.NewJPConfig(nil, jpcl.ConfigOptions{})
 	if err := cfg.SetPath("A.b.c", []any{int64(1)}); err != nil {
 		t.Fatal(err)
 	}
@@ -776,7 +776,7 @@ func TestConfigSetPathCreatesSections(t *testing.T) {
 }
 
 func TestConfigSetPathReplacesAnEmptyValue(t *testing.T) {
-	cfg := jpml.NewJPConfig(mustParse(t, "[s]\nconfig:\n"), jpml.ConfigOptions{})
+	cfg := jpcl.NewJPConfig(mustParse(t, "[s]\nconfig:\n"), jpcl.ConfigOptions{})
 	if err := cfg.SetPath("s.config.a", int64(1)); err != nil {
 		t.Fatal(err)
 	}
@@ -787,7 +787,7 @@ func TestConfigSetPathReplacesAnEmptyValue(t *testing.T) {
 }
 
 func TestConfigSetPathRefusesToDescendIntoAScalar(t *testing.T) {
-	cfg := jpml.NewJPConfig(mustParse(t, "[s]\na: 1\n"), jpml.ConfigOptions{})
+	cfg := jpcl.NewJPConfig(mustParse(t, "[s]\na: 1\n"), jpcl.ConfigOptions{})
 	err := cfg.SetPath("s.a.b", int64(2))
 	if err == nil || !strings.Contains(err.Error(), "cannot descend") {
 		t.Fatalf("err -> %v", err)
@@ -795,7 +795,7 @@ func TestConfigSetPathRefusesToDescendIntoAScalar(t *testing.T) {
 }
 
 func TestConfigSectionHelper(t *testing.T) {
-	cfg := jpml.NewJPConfig(mustParse(t, sample), jpml.ConfigOptions{})
+	cfg := jpcl.NewJPConfig(mustParse(t, sample), jpcl.ConfigOptions{})
 	sec, err := cfg.Section("SERVER_ID_2", false)
 	if err != nil {
 		t.Fatal(err)
@@ -817,7 +817,7 @@ func TestConfigSectionHelper(t *testing.T) {
 }
 
 func TestConfigMergeIsDeep(t *testing.T) {
-	cfg := jpml.NewJPConfig(mustParse(t, sample), jpml.ConfigOptions{})
+	cfg := jpcl.NewJPConfig(mustParse(t, sample), jpcl.ConfigOptions{})
 	cfg.Merge(mustParse(t, "[SERVER_ID_2]\nmodules: {fun: true, logs: true}\n"), true)
 	modules := cfg.GetPath("SERVER_ID_2.modules", nil)
 	want := obj("moderation", true, "fun", true, "logs", true)
@@ -830,7 +830,7 @@ func TestConfigMergeIsDeep(t *testing.T) {
 }
 
 func TestConfigShallowMergeReplaces(t *testing.T) {
-	cfg := jpml.NewJPConfig(mustParse(t, sample), jpml.ConfigOptions{})
+	cfg := jpcl.NewJPConfig(mustParse(t, sample), jpcl.ConfigOptions{})
 	cfg.Merge(mustParse(t, "[SERVER_ID_2]\nprefix: \"?\"\n"), false)
 	got, _ := cfg.Data.Get("SERVER_ID_2")
 	want := obj("prefix", "?")
@@ -840,11 +840,11 @@ func TestConfigShallowMergeReplaces(t *testing.T) {
 }
 
 func TestConfigToDictIsADeepCopy(t *testing.T) {
-	cfg := jpml.NewJPConfig(mustParse(t, sample), jpml.ConfigOptions{})
+	cfg := jpcl.NewJPConfig(mustParse(t, sample), jpcl.ConfigOptions{})
 	snapshot := cfg.ToDict()
 	users, _ := snapshot.Get("SERVER_ID")
-	usersSlice, _ := users.(*jpml.Object).Get("config")
-	arr, _ := usersSlice.(*jpml.Object).Get("disabled_users")
+	usersSlice, _ := users.(*jpcl.Object).Get("config")
+	arr, _ := usersSlice.(*jpcl.Object).Get("disabled_users")
 	arr = append(arr.([]any), int64(1)) // mutate the copy only
 	_ = arr
 	original := cfg.GetPath("SERVER_ID.config.disabled_users", nil)
@@ -859,7 +859,7 @@ func TestConfigSaveAndReload(t *testing.T) {
 	p := filepath.Join(dir, "servers.jp")
 	os.WriteFile(p, []byte(sample), 0o644)
 
-	cfg, err := jpml.LoadJPConfig(p, false, jpml.ConfigOptions{Write: jpml.DefaultStringifyOptions()})
+	cfg, err := jpcl.LoadJPConfig(p, false, jpcl.ConfigOptions{Write: jpcl.DefaultStringifyOptions()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -870,7 +870,7 @@ func TestConfigSaveAndReload(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	reloaded, err := jpml.LoadJPConfig(p, false, jpml.ConfigOptions{})
+	reloaded, err := jpcl.LoadJPConfig(p, false, jpcl.ConfigOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -892,7 +892,7 @@ func TestConfigSaveAndReload(t *testing.T) {
 func TestConfigLoadMissingOK(t *testing.T) {
 	dir := t.TempDir()
 	p := filepath.Join(dir, "absent.jp")
-	cfg, err := jpml.LoadJPConfig(p, true, jpml.ConfigOptions{})
+	cfg, err := jpcl.LoadJPConfig(p, true, jpcl.ConfigOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -909,7 +909,7 @@ func TestConfigLoadMissingOK(t *testing.T) {
 	if saved != p {
 		t.Fatalf("saved -> %q, want %q", saved, p)
 	}
-	data, err := jpml.Load(p, jpml.ParseOptions{})
+	data, err := jpcl.Load(p, jpcl.ParseOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -920,14 +920,14 @@ func TestConfigLoadMissingOK(t *testing.T) {
 
 func TestConfigLoadMissingRaisesWithoutFlag(t *testing.T) {
 	dir := t.TempDir()
-	_, err := jpml.LoadJPConfig(filepath.Join(dir, "absent.jp"), false, jpml.ConfigOptions{})
+	_, err := jpcl.LoadJPConfig(filepath.Join(dir, "absent.jp"), false, jpcl.ConfigOptions{})
 	if err == nil {
 		t.Fatal("expected an error")
 	}
 }
 
 func TestConfigSaveWithoutPath(t *testing.T) {
-	cfg := jpml.NewJPConfig(nil, jpml.ConfigOptions{})
+	cfg := jpcl.NewJPConfig(nil, jpcl.ConfigOptions{})
 	_, err := cfg.Save("")
 	if err == nil || !strings.Contains(err.Error(), "no path") {
 		t.Fatalf("err -> %v", err)

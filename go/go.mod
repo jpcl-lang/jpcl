@@ -1,3 +1,3 @@
-module github.com/jpml-lang/jpml-go
+module github.com/jpcl-lang/jpcl-go
 
 go 1.27.1

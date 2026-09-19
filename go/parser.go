@@ -1,5 +1,5 @@
 // parser.go
-package jpml
+package jpcl
 
 import (
 	"fmt"

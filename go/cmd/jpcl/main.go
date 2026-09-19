@@ -12,31 +12,31 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jpml-lang/jpml-go"
+	"github.com/jpcl-lang/jpcl-go"
 )
 
-const checkUsage = `usage: jpml check [-q] files...
+const checkUsage = `usage: jpcl check [-q] files...
 
   -q, --quiet     only report errors`
 
-const fmtUsage = `usage: jpml fmt [-w] [--indent N] [--width N] [--sort-keys] files...
+const fmtUsage = `usage: jpcl fmt [-w] [--indent N] [--width N] [--sort-keys] files...
 
   -w, --write     rewrite files in place
   --indent N      spaces per level (default 2)
   --width N       column budget for inline arrays (default 88)
   --sort-keys     sort keys alphabetically`
 
-const getUsage = `usage: jpml get [-r] file path
+const getUsage = `usage: jpcl get [-r] file path
 
   path            e.g. SERVER_ID.config.disabled_users
   -r, --raw       print strings unquoted`
 
-const toJSONUsage = `usage: jpml to-json [-o OUTPUT] [--indent N] file
+const toJSONUsage = `usage: jpcl to-json [-o OUTPUT] [--indent N] file
 
   -o, --output    write to a file instead of stdout
   --indent N      spaces per level (default 2)`
 
-const fromJSONUsage = `usage: jpml from-json [-o OUTPUT] [--indent N] [--width N] [--sort-keys] file
+const fromJSONUsage = `usage: jpcl from-json [-o OUTPUT] [--indent N] [--width N] [--sort-keys] file
 
   -o, --output    write to a file instead of stdout
   --indent N      spaces per level (default 2)
@@ -63,7 +63,7 @@ func main() {
 
 func run(args []string, stdout, stderr io.Writer, stdin io.Reader) int {
 	if len(args) == 0 {
-		fmt.Fprintf(stderr, "%s\njpml: error: a command is required\n", firstLine(mainUsage()))
+		fmt.Fprintf(stderr, "%s\njpcl: error: a command is required\n", firstLine(mainUsage()))
 		return 2
 	}
 	name, rest := args[0], args[1:]
@@ -72,7 +72,7 @@ func run(args []string, stdout, stderr io.Writer, stdin io.Reader) int {
 		fmt.Fprint(stdout, mainUsage())
 		return 0
 	case "--version":
-		fmt.Fprintf(stdout, "jpml %s\n", jpml.Version)
+		fmt.Fprintf(stdout, "jpcl %s\n", jpcl.Version)
 		return 0
 	}
 	for _, c := range registry {
@@ -80,7 +80,7 @@ func run(args []string, stdout, stderr io.Writer, stdin io.Reader) int {
 			return c.run(rest, stdout, stderr, stdin)
 		}
 	}
-	fmt.Fprintf(stderr, "%s\njpml: error: invalid command '%s' (choose from %s)\n",
+	fmt.Fprintf(stderr, "%s\njpcl: error: invalid command '%s' (choose from %s)\n",
 		firstLine(mainUsage()), name, strings.Join(commandNames(), ", "))
 	return 2
 }
@@ -95,7 +95,7 @@ func commandNames() []string {
 
 func mainUsage() string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "usage: jpml [-h] [--version] {%s} ...\n\n", strings.Join(commandNames(), ","))
+	fmt.Fprintf(&b, "usage: jpcl [-h] [--version] {%s} ...\n\n", strings.Join(commandNames(), ","))
 	b.WriteString("Work with .jp configuration files.\n\ncommands:\n")
 	for _, c := range registry {
 		fmt.Fprintf(&b, "  %-12s%s\n", c.name, c.help)
@@ -113,19 +113,19 @@ func firstLine(s string) string {
 
 // -- shared helpers ---------------------------------------------------------
 
-func readInput(path string, stdin io.Reader) (*jpml.Object, error) {
+func readInput(path string, stdin io.Reader) (*jpcl.Object, error) {
 	if path == "-" {
 		data, err := io.ReadAll(stdin)
 		if err != nil {
 			return nil, err
 		}
-		return jpml.Parse(string(data), jpml.ParseOptions{Filename: "<stdin>"})
+		return jpcl.Parse(string(data), jpcl.ParseOptions{Filename: "<stdin>"})
 	}
-	return jpml.Load(path, jpml.ParseOptions{})
+	return jpcl.Load(path, jpcl.ParseOptions{})
 }
 
-func formatOptions(indent, width int, sortKeys bool) jpml.StringifyOptions {
-	return jpml.StringifyOptions{Indent: indent, Width: width, SortKeys: sortKeys}
+func formatOptions(indent, width int, sortKeys bool) jpcl.StringifyOptions {
+	return jpcl.StringifyOptions{Indent: indent, Width: width, SortKeys: sortKeys}
 }
 
 func writeOutput(output, text string, stdout, stderr io.Writer) int {
@@ -151,7 +151,7 @@ func cmdCheck(args []string, stdout, stderr io.Writer, stdin io.Reader) int {
 	fs.BoolVar(help, "help", false, "show help")
 
 	if err := fs.Parse(args); err != nil {
-		fmt.Fprintf(stderr, "%s\njpml check: error: %v\n", firstLine(checkUsage), err)
+		fmt.Fprintf(stderr, "%s\njpcl check: error: %v\n", firstLine(checkUsage), err)
 		return 2
 	}
 	if *help {
@@ -160,7 +160,7 @@ func cmdCheck(args []string, stdout, stderr io.Writer, stdin io.Reader) int {
 	}
 	files := fs.Args()
 	if len(files) == 0 {
-		fmt.Fprintf(stderr, "%s\njpml check: error: the following arguments are required: files\n", firstLine(checkUsage))
+		fmt.Fprintf(stderr, "%s\njpcl check: error: the following arguments are required: files\n", firstLine(checkUsage))
 		return 2
 	}
 
@@ -193,7 +193,7 @@ func cmdFmt(args []string, stdout, stderr io.Writer, stdin io.Reader) int {
 	fs.BoolVar(help, "help", false, "show help")
 
 	if err := fs.Parse(args); err != nil {
-		fmt.Fprintf(stderr, "%s\njpml fmt: error: %v\n", firstLine(fmtUsage), err)
+		fmt.Fprintf(stderr, "%s\njpcl fmt: error: %v\n", firstLine(fmtUsage), err)
 		return 2
 	}
 	if *help {
@@ -202,7 +202,7 @@ func cmdFmt(args []string, stdout, stderr io.Writer, stdin io.Reader) int {
 	}
 	files := fs.Args()
 	if len(files) == 0 {
-		fmt.Fprintf(stderr, "%s\njpml fmt: error: the following arguments are required: files\n", firstLine(fmtUsage))
+		fmt.Fprintf(stderr, "%s\njpcl fmt: error: the following arguments are required: files\n", firstLine(fmtUsage))
 		return 2
 	}
 
@@ -215,7 +215,7 @@ func cmdFmt(args []string, stdout, stderr io.Writer, stdin io.Reader) int {
 			fmt.Fprintln(stderr, err)
 			continue
 		}
-		text, err := jpml.Dumps(data, format)
+		text, err := jpcl.Dumps(data, format)
 		if err != nil {
 			failures++
 			fmt.Fprintln(stderr, err)
@@ -225,7 +225,7 @@ func cmdFmt(args []string, stdout, stderr io.Writer, stdin io.Reader) int {
 			if current, err := os.ReadFile(path); err == nil && string(current) == text {
 				continue
 			}
-			if err := jpml.Dump(data, path, true, format); err != nil {
+			if err := jpcl.Dump(data, path, true, format); err != nil {
 				failures++
 				fmt.Fprintln(stderr, err)
 				continue
@@ -250,7 +250,7 @@ func cmdGet(args []string, stdout, stderr io.Writer, stdin io.Reader) int {
 	fs.BoolVar(help, "help", false, "show help")
 
 	if err := fs.Parse(args); err != nil {
-		fmt.Fprintf(stderr, "%s\njpml get: error: %v\n", firstLine(getUsage), err)
+		fmt.Fprintf(stderr, "%s\njpcl get: error: %v\n", firstLine(getUsage), err)
 		return 2
 	}
 	if *help {
@@ -259,11 +259,11 @@ func cmdGet(args []string, stdout, stderr io.Writer, stdin io.Reader) int {
 	}
 	positional := fs.Args()
 	if len(positional) < 2 {
-		fmt.Fprintf(stderr, "%s\njpml get: error: the following arguments are required: file, path\n", firstLine(getUsage))
+		fmt.Fprintf(stderr, "%s\njpcl get: error: the following arguments are required: file, path\n", firstLine(getUsage))
 		return 2
 	}
 	if len(positional) > 2 {
-		fmt.Fprintf(stderr, "%s\njpml get: error: unrecognized arguments: %s\n", firstLine(getUsage), strings.Join(positional[2:], " "))
+		fmt.Fprintf(stderr, "%s\njpcl get: error: unrecognized arguments: %s\n", firstLine(getUsage), strings.Join(positional[2:], " "))
 		return 2
 	}
 	file, path := positional[0], positional[1]
@@ -273,7 +273,7 @@ func cmdGet(args []string, stdout, stderr io.Writer, stdin io.Reader) int {
 		fmt.Fprintln(stderr, err)
 		return 1
 	}
-	cfg := jpml.NewJPConfig(data, jpml.ConfigOptions{})
+	cfg := jpcl.NewJPConfig(data, jpcl.ConfigOptions{})
 	sentinel := &struct{}{}
 	value := cfg.GetPath(path, sentinel)
 	if value == any(sentinel) {
@@ -298,7 +298,7 @@ func cmdToJSON(args []string, stdout, stderr io.Writer, stdin io.Reader) int {
 	fs.BoolVar(help, "help", false, "show help")
 
 	if err := fs.Parse(args); err != nil {
-		fmt.Fprintf(stderr, "%s\njpml to-json: error: %v\n", firstLine(toJSONUsage), err)
+		fmt.Fprintf(stderr, "%s\njpcl to-json: error: %v\n", firstLine(toJSONUsage), err)
 		return 2
 	}
 	if *help {
@@ -307,7 +307,7 @@ func cmdToJSON(args []string, stdout, stderr io.Writer, stdin io.Reader) int {
 	}
 	positional := fs.Args()
 	if len(positional) != 1 {
-		fmt.Fprintf(stderr, "%s\njpml to-json: error: expected exactly one file argument\n", firstLine(toJSONUsage))
+		fmt.Fprintf(stderr, "%s\njpcl to-json: error: expected exactly one file argument\n", firstLine(toJSONUsage))
 		return 2
 	}
 
@@ -332,7 +332,7 @@ func cmdFromJSON(args []string, stdout, stderr io.Writer, stdin io.Reader) int {
 	fs.BoolVar(help, "help", false, "show help")
 
 	if err := fs.Parse(args); err != nil {
-		fmt.Fprintf(stderr, "%s\njpml from-json: error: %v\n", firstLine(fromJSONUsage), err)
+		fmt.Fprintf(stderr, "%s\njpcl from-json: error: %v\n", firstLine(fromJSONUsage), err)
 		return 2
 	}
 	if *help {
@@ -341,7 +341,7 @@ func cmdFromJSON(args []string, stdout, stderr io.Writer, stdin io.Reader) int {
 	}
 	positional := fs.Args()
 	if len(positional) != 1 {
-		fmt.Fprintf(stderr, "%s\njpml from-json: error: expected exactly one file argument\n", firstLine(fromJSONUsage))
+		fmt.Fprintf(stderr, "%s\njpcl from-json: error: expected exactly one file argument\n", firstLine(fromJSONUsage))
 		return 2
 	}
 
@@ -362,12 +362,12 @@ func cmdFromJSON(args []string, stdout, stderr io.Writer, stdin io.Reader) int {
 		fmt.Fprintln(stderr, err)
 		return 1
 	}
-	obj, ok := value.(*jpml.Object)
+	obj, ok := value.(*jpcl.Object)
 	if !ok {
 		fmt.Fprintln(stderr, "the top level of a .jp document must be a JSON object")
 		return 1
 	}
-	text, err := jpml.Dumps(obj, formatOptions(*indent, *width, *sortKeys))
+	text, err := jpcl.Dumps(obj, formatOptions(*indent, *width, *sortKeys))
 	if err != nil {
 		fmt.Fprintln(stderr, err)
 		return 1
@@ -402,7 +402,7 @@ func toJSON(value any, indent, level int) string {
 		default:
 			return strconv.FormatFloat(v, 'g', -1, 64)
 		}
-	case *jpml.Object:
+	case *jpcl.Object:
 		return jsonObject(v, indent, level)
 	case []any:
 		return jsonArray(v, indent, level)
@@ -411,7 +411,7 @@ func toJSON(value any, indent, level int) string {
 	}
 }
 
-func jsonObject(obj *jpml.Object, indent, level int) string {
+func jsonObject(obj *jpcl.Object, indent, level int) string {
 	keys := obj.Keys()
 	if len(keys) == 0 {
 		return "{}"
@@ -455,7 +455,7 @@ func decodeJSONValue(dec *json.Decoder, tok json.Token) (any, error) {
 	case json.Delim:
 		switch t {
 		case '{':
-			obj := jpml.NewObject()
+			obj := jpcl.NewObject()
 			for dec.More() {
 				keyTok, err := dec.Token()
 				if err != nil {

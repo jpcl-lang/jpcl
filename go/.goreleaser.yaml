@@ -1,15 +1,15 @@
 version: 2
 
-project_name: jpml
+project_name: jpcl
 
 before:
   hooks:
     - go mod tidy
 
 builds:
-  - id: jpml
-    main: ./cmd/jpml
-    binary: jpml
+  - id: jpcl
+    main: ./cmd/jpcl
+    binary: jpcl
     env:
       - CGO_ENABLED=0
     goos:
@@ -20,10 +20,10 @@ builds:
       - amd64
       - arm64
     ldflags:
-      - -s -w -X github.com/jpml-lang/jpml-go.Version={{ .Version }}
+      - -s -w -X github.com/jpcl-lang/jpcl-go.Version={{ .Version }}
 
 archives:
-  - id: jpml
+  - id: jpcl
     formats: [tar.gz]
     format_overrides:
       - goos: windows
@@ -47,5 +47,5 @@ changelog:
 
 release:
   github:
-    owner: jpml-lang
-    name: jpml-go
+    owner: jpcl-lang
+    name: jpcl-go

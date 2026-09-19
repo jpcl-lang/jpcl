@@ -49,8 +49,8 @@ jobs:
       - name: Run tests
         run: go test ./... -race
 
-      # Note: 'jpml fmt' is deliberately not enforced here -- rewriting a file
+      # Note: 'jpcl fmt' is deliberately not enforced here -- rewriting a file
       # drops its comments, so formatting stays a manual choice.
       - name: Validate the bundled .jp file
         shell: bash
-        run: go run ./cmd/jpml check data/*.jp
+        run: go run ./cmd/jpcl check data/*.jp

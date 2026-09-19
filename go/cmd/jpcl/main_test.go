@@ -194,7 +194,7 @@ func TestCLIHelpAndVersion(t *testing.T) {
 		t.Fatalf("out=%q", out)
 	}
 	_, out, _ = runCLI(t, []string{"--version"}, "")
-	if !strings.HasPrefix(out, "jpml ") {
+	if !strings.HasPrefix(out, "jpcl ") {
 		t.Fatalf("out=%q", out)
 	}
 }

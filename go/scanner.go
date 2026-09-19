@@ -1,5 +1,5 @@
 // scanner.go
-package jpml
+package jpcl
 
 import (
 	"fmt"

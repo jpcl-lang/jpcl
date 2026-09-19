@@ -1,5 +1,5 @@
 // config.go
-package jpml
+package jpcl
 
 import (
 	"errors"
