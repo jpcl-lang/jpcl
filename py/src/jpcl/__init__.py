@@ -1,4 +1,4 @@
-"""jpml -- a hybrid JSON/TOML configuration language.
+"""jpcl -- a hybrid JSON/TOML configuration language.
 
 ``.jp`` files use TOML-style ``[SECTION]`` headers at the top level and
 JSON-style ``{...}`` / ``[...]`` structures inside them, with unquoted keys and
@@ -12,12 +12,12 @@ JSON-style ``{...}`` / ``[...]`` structures inside them, with unquoted keys and
 
 Typical use::
 
-    import jpml
+    import jpcl
 
-    data = jpml.load("data/servers.jp")          # -> dict
-    jpml.dump(data, "data/servers.jp")           # formatted, atomic write
+    data = jpcl.load("data/servers.jp")          # -> dict
+    jpcl.dump(data, "data/servers.jp")           # formatted, atomic write
 
-    cfg = jpml.JPConfig.load("data/servers.jp")  # dict-like, dotted paths
+    cfg = jpcl.JPConfig.load("data/servers.jp")  # dict-like, dotted paths
     cfg.set_path("SERVER_ID.prefix", "!")
     cfg.save()
 """
@@ -42,7 +42,7 @@ from .jp_config import (
 try:
     #: Taken from the installed distribution metadata, so ``pyproject.toml`` is
     #: the only place a release version has to be bumped.
-    __version__ = _installed_version("jpml")
+    __version__ = _installed_version("jpcl")
 except PackageNotFoundError:  # pragma: no cover - running from a source tree
     __version__ = "0.0.0+unknown"
 

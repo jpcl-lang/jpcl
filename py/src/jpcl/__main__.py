@@ -1,4 +1,4 @@
-"""Allow ``python -m jpml`` to run the command line interface."""
+"""Allow ``python -m jpcl`` to run the command line interface."""
 
 from __future__ import annotations
 

@@ -4,7 +4,7 @@ The module mirrors :mod:`json` -- :func:`loads`, :func:`load`, :func:`dumps`,
 :func:`dump` -- and adds :class:`JPConfig`, a dict-like wrapper that remembers
 the file it came from::
 
-    from jpml import JPConfig
+    from jpcl import JPConfig
 
     cfg = JPConfig.load("data/servers.jp")
     cfg.set_path("SERVER_ID.config.disabled_users", [9892])
@@ -116,7 +116,7 @@ def load(
 def dumps(obj: Mapping, **options: Any) -> str:
     """Serialise *obj* to ``.jp`` text.
 
-    See :func:`jpml.writer.dumps` for the full list of options.
+    See :func:`jpcl.writer.dumps` for the full list of options.
     """
     return writer.dumps(obj, **options)
 

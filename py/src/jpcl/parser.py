@@ -335,7 +335,7 @@ def parse(
     """Parse *text* as a ``.jp`` document.
 
     This is the low-level entry point; most callers want
-    :func:`jpml.jp_config.loads`.
+    :func:`jpcl.jp_config.loads`.
 
     Raises:
         JPDecodeError: If the document is malformed.

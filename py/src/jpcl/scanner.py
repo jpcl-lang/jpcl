@@ -2,7 +2,7 @@
 
 The scanner owns the cursor and every *lexical* concern: whitespace, comments,
 quoted strings, and the interpretation of bare (unquoted) tokens.  It knows
-nothing about the grammar -- that lives in :mod:`jpml.parser`.
+nothing about the grammar -- that lives in :mod:`jpcl.parser`.
 
 The format is deliberately context sensitive (``[`` opens a section header at
 the top level but an array everywhere else), so there is no standalone token

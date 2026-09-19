@@ -21,7 +21,7 @@ wheels = [
 ]
 
 [[package]]
-name = "jpml"
+name = "jpcl"
 version = "1.1.1"
 source = { editable = "." }
 

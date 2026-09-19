@@ -1,4 +1,4 @@
-"""Command line interface: ``jpml <command> [files]``.
+"""Command line interface: ``jpcl <command> [files]``.
 
 Commands:
     check      Validate ``.jp`` files and report the first error in each.
@@ -121,11 +121,11 @@ def _cmd_from_json(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Construct the argument parser for the ``jpml`` command."""
+    """Construct the argument parser for the ``jpcl`` command."""
     parser = argparse.ArgumentParser(
-        prog="jpml", description="Work with .jp configuration files."
+        prog="jpcl", description="Work with .jp configuration files."
     )
-    parser.add_argument("--version", action="version", version=f"jpml {__version__}")
+    parser.add_argument("--version", action="version", version=f"jpcl {__version__}")
     subcommands = parser.add_subparsers(dest="command", required=True)
 
     def add_format_flags(sub: argparse.ArgumentParser) -> None:
@@ -174,7 +174,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Entry point for the ``jpml`` console script."""
+    """Entry point for the ``jpcl`` console script."""
     args = build_parser().parse_args(argv)
     return args.func(args)
 

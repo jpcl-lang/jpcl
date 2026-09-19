@@ -8,26 +8,26 @@ uv run pytest -q
 ```
 
 Requires Python 3.14+. `uv sync` installs the project and the `dev` dependency
-group; `uv run jpml ...` runs the CLI from the working tree.
+group; `uv run jpcl ...` runs the CLI from the working tree.
 
 ## Project layout
 
 ```
-src/jpml/
+src/jpcl/
 ├─ __init__.py     public exports
 ├─ errors.py       JPError, JPDecodeError (with line/column), JPEncodeError
 ├─ scanner.py      cursor, whitespace, comments, strings, bare tokens
 ├─ parser.py       recursive-descent grammar
 ├─ writer.py       deterministic serialiser
 ├─ jp_config.py    load/loads/dump/dumps/load_dir + JPConfig
-├─ cli.py          the jpml command
-└─ __main__.py     python -m jpml
+├─ cli.py          the jpcl command
+└─ __main__.py     python -m jpcl
 tests/
 └─ test_jp_config.py
 ```
 
-`jp_config` is the public module; `import jpml` re-exports all of it, so
-`jpml.load(...)` and `from jpml.jp_config import JPConfig` are equivalent.
+`jp_config` is the public module; `import jpcl` re-exports all of it, so
+`jpcl.load(...)` and `from jpcl.jp_config import JPConfig` are equivalent.
 
 The split is deliberate: `scanner.py` owns every *lexical* concern and knows
 nothing about the grammar, while `parser.py` owns the grammar and drives the
@@ -44,7 +44,7 @@ uv run pytest -q
 CI (`.github/workflows/ci.yml`) runs the suite on Linux, Windows and macOS for
 every push and pull request, and validates the bundled `.jp` files.
 
-`jpml fmt` is deliberately *not* enforced in CI: rewriting a file drops its
+`jpcl fmt` is deliberately *not* enforced in CI: rewriting a file drops its
 comments, so formatting stays a manual choice.
 
 ## Releasing
@@ -61,9 +61,9 @@ Publishing** (OIDC), so there are no API tokens or repository secrets to manage.
 
    | Field | Value |
    | --- | --- |
-   | PyPI project name | `jpml` |
+   | PyPI project name | `jpcl` |
    | Owner | `doughmination` |
-   | Repository name | `jpml` |
+   | Repository name | `jpcl` |
    | Workflow name | `publish.yml` |
    | Environment name | `pypi` |
 
@@ -71,7 +71,7 @@ Publishing** (OIDC), so there are no API tokens or repository secrets to manage.
 
 ```bash
 # 1. bump [project] version in pyproject.toml -- the only place it lives;
-#    jpml.__version__ is read from the installed distribution metadata.
+#    jpcl.__version__ is read from the installed distribution metadata.
 git commit -am "Release 1.0.1"
 git tag v1.0.1
 git push --follow-tags

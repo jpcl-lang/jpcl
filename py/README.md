@@ -1,9 +1,9 @@
-# jpml-py
+# jpcl-py
 
-Python package for JPML
+Python package for JPCL
 
-[![CI](https://github.com/doughmination/jpml/actions/workflows/ci.yml/badge.svg)](https://github.com/doughmination/jpml/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/jpml)](https://pypi.org/project/jpml/)
+[![CI](https://github.com/jpcl-lang/jpcl-py/actions/workflows/ci.yml/badge.svg)](https://github.com/jpcl-lang/jpcl-py/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/jpcl)](https://pypi.org/project/jpcl/)
 
 **A configuration language that borrows TOML's sections and JSON's nesting.**
 
@@ -27,8 +27,8 @@ modules: {
 ```
 
 ```python
->>> import jpml
->>> jpml.load("data/servers.jp")
+>>> import jpcl
+>>> jpcl.load("data/servers.jp")
 {'SERVER_ID': {'config': {'disabled_channels': None,
                           'disabled_users': [9892, 82082, 8209]}},
  'SERVER_ID_2': {'prefix': '!', 'modules': {'moderation': True, 'fun': False}}}
@@ -55,7 +55,7 @@ messages, and a deterministic writer, so files stay stable when a program
 rewrites them.
 
 ```bash
-pip install jpml     # or: uv add jpml
+pip install jpcl     # or: uv add jpcl
 ```
 
 No runtime dependencies. Python 3.14+.
@@ -150,13 +150,13 @@ objects and arrays.
 ### Read and write files
 
 ```python
-import jpml
+import jpcl
 
-data = jpml.load("data/servers.jp")        # -> dict
-jpml.dump(data, "data/servers.jp")         # formatted, atomic write
+data = jpcl.load("data/servers.jp")        # -> dict
+jpcl.dump(data, "data/servers.jp")         # formatted, atomic write
 
-text = jpml.dumps(data)                    # -> str
-data = jpml.loads(text)                    # -> dict
+text = jpcl.dumps(data)                    # -> str
+data = jpcl.loads(text)                    # -> dict
 ```
 
 Writes are atomic by default: the file goes to a temporary neighbour and is
@@ -165,9 +165,9 @@ renamed into place, so a crash or a concurrent reader never sees half a config.
 Options worth knowing:
 
 ```python
-jpml.load("servers.jp", duplicate_keys="last")   # "error" (default), "first", "last"
-jpml.dumps(data, indent=4, sort_keys=True)       # also: width, ensure_ascii
-jpml.dumps(data, default=str)                    # convert datetimes and friends
+jpcl.load("servers.jp", duplicate_keys="last")   # "error" (default), "first", "last"
+jpcl.dumps(data, indent=4, sort_keys=True)       # also: width, ensure_ascii
+jpcl.dumps(data, default=str)                    # convert datetimes and friends
 ```
 
 ### Edit a config in place
@@ -175,7 +175,7 @@ jpml.dumps(data, default=str)                    # convert datetimes and friends
 `JPConfig` is a `MutableMapping` that remembers the file it came from.
 
 ```python
-from jpml import JPConfig
+from jpcl import JPConfig
 
 cfg = JPConfig.load("data/servers.jp", missing_ok=True)
 
@@ -201,16 +201,16 @@ cfg = JPConfig.load("data/servers.jp", indent=4, sort_keys=True)
 ### Load a whole folder
 
 ```python
-config = jpml.load_dir("data")                 # {'servers': {...}, 'roles': {...}}
-guilds = jpml.load_dir("data/guilds")          # {'1234567890': {...}, ...}
-everything = jpml.load_dir("data", recursive=True)
+config = jpcl.load_dir("data")                 # {'servers': {...}, 'roles': {...}}
+guilds = jpcl.load_dir("data/guilds")          # {'1234567890': {...}, ...}
+everything = jpcl.load_dir("data", recursive=True)
 ```
 
 Each file becomes one key, named after the file.
 
 ### Find mistakes quickly
 
-Every error derives from `jpml.JPError`. `JPDecodeError` (a `ValueError`) points
+Every error derives from `jpcl.JPError`. `JPDecodeError` (a `ValueError`) points
 at the exact character:
 
 ```
@@ -229,14 +229,14 @@ By default a repeated key is an error rather than a silent overwrite; pass
 ### Work from the shell
 
 ```bash
-jpml check data/*.jp                      # validate; non-zero exit on failure
-jpml fmt -w data/servers.jp               # reformat in place
-jpml get data/servers.jp SERVER_ID.prefix # read one value
-jpml to-json data/servers.jp -o out.json
-jpml from-json out.json -o data/servers.jp
+jpcl check data/*.jp                      # validate; non-zero exit on failure
+jpcl fmt -w data/servers.jp               # reformat in place
+jpcl get data/servers.jp SERVER_ID.prefix # read one value
+jpcl to-json data/servers.jp -o out.json
+jpcl from-json out.json -o data/servers.jp
 ```
 
-`python -m jpml ...` works identically, and `-` reads stdin.
+`python -m jpcl ...` works identically, and `-` reads stdin.
 
 ---
 
@@ -291,7 +291,7 @@ A few habits that save pain later:
    `{1234567890: {...}}` round-trips.
 4. **Write through `JPConfig.save()`** rather than by hand, so an interrupted
    write cannot truncate a live config.
-5. **Validate in CI** with `jpml check data/*.jp`.
+5. **Validate in CI** with `jpcl check data/*.jp`.
 
 ---
 

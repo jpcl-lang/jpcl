@@ -64,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/jpml
+      url: https://pypi.org/p/jpcl
     permissions:
       id-token: write   # mints the OIDC token PyPI trusts
       contents: read

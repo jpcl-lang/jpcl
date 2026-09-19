@@ -38,8 +38,8 @@ jobs:
       - name: Run tests
         run: uv run pytest -q
 
-      # Note: 'jpml fmt' is deliberately not enforced here -- rewriting a file
+      # Note: 'jpcl fmt' is deliberately not enforced here -- rewriting a file
       # drops its comments, so formatting stays a manual choice.
       - name: Validate the bundled .jp files
         shell: bash
-        run: uv run jpml check data/*.jp
+        run: uv run jpcl check data/*.jp
