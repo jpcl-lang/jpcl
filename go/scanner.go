@@ -10,9 +10,15 @@ import (
 
 const (
 	inlineSpaceChars = " \t\f\v"
-	valueEndChars    = ",}]\r\n#"
-	keyEndChars      = ":,{}[]\"'\r\n#"
-	headerEndChars   = ".]\r\n#"
+	valueEndChars    = ",}]\r\n"
+	keyEndChars      = ":,{}[]\"'\r\n"
+	headerEndChars   = ".]\r\n"
+
+	// lineComment runs to the end of the line; blockOpen and blockClose wrap a
+	// comment that may span lines.
+	lineComment = "$$"
+	blockOpen   = "$*"
+	blockClose  = "*$"
 )
 
 var simpleEscapes = map[rune]rune{
@@ -86,6 +92,17 @@ type scanner struct {
 	filename string
 }
 
+// startsWith reports whether the two-rune marker starts at index i.
+func (s *scanner) startsWith(marker string, i int) bool {
+	runes := []rune(marker)
+	return i+1 < len(s.text) && s.text[i] == runes[0] && s.text[i+1] == runes[1]
+}
+
+// atComment reports whether a line or block comment starts at index i.
+func (s *scanner) atComment(i int) bool {
+	return s.startsWith(lineComment, i) || s.startsWith(blockOpen, i)
+}
+
 func newScanner(text, filename string) *scanner {
 	text = strings.TrimLeft(text, "\uFEFF")
 	return &scanner{text: []rune(text), filename: filename}
@@ -125,41 +142,66 @@ func (s *scanner) describeHere() string {
 	return strconv.QuoteRune(ch)
 }
 
-func (s *scanner) skipInline() {
-	for s.pos < len(s.text) {
-		ch := s.text[s.pos]
-		switch {
-		case strings.ContainsRune(inlineSpaceChars, ch):
-			s.pos++
-		case ch == '#':
-			for s.pos < len(s.text) && s.text[s.pos] != '\r' && s.text[s.pos] != '\n' {
-				s.pos++
-			}
-		default:
-			return
-		}
-	}
+// skipInline skips spaces, tabs and comments, but never a line break. A block
+// comment that spans lines counts as a line break, so the cursor stops on its "$*".
+func (s *scanner) skipInline() error {
+	return s.skip(false)
 }
 
-func (s *scanner) skipIgnorable() {
+// skipIgnorable skips all whitespace, line breaks included, and comments.
+func (s *scanner) skipIgnorable() error {
+	return s.skip(true)
+}
+
+func (s *scanner) skip(newlines bool) error {
 	for s.pos < len(s.text) {
 		ch := s.text[s.pos]
 		switch {
-		case strings.ContainsRune(inlineSpaceChars, ch), ch == '\r', ch == '\n':
+		case strings.ContainsRune(inlineSpaceChars, ch), newlines && (ch == '\r' || ch == '\n'):
 			s.pos++
-		case ch == '#':
+		case s.startsWith(lineComment, s.pos):
 			for s.pos < len(s.text) && s.text[s.pos] != '\r' && s.text[s.pos] != '\n' {
 				s.pos++
 			}
+		case s.startsWith(blockOpen, s.pos):
+			after, crossesLine, found := s.blockCommentEnd(s.pos)
+			if !found {
+				return s.errorAt("unterminated block comment: missing '*$'", s.pos)
+			}
+			if crossesLine && !newlines {
+				return nil
+			}
+			s.pos = after
 		default:
-			return
+			return nil
 		}
 	}
+	return nil
+}
+
+// blockCommentEnd finds the "*$" closing the block comment opened at i.
+func (s *scanner) blockCommentEnd(i int) (after int, crossesLine bool, found bool) {
+	for j := i + 2; j+1 < len(s.text); j++ {
+		if s.text[j] == '\r' || s.text[j] == '\n' {
+			crossesLine = true
+		}
+		if s.startsWith(blockClose, j) {
+			return j + 2, crossesLine, true
+		}
+	}
+	return 0, false, false
+}
+
+// atLineEnd reports a line break, the end of the file, or a block comment that
+// spans lines (left there by skipInline).
+func (s *scanner) atLineEnd() bool {
+	ch, ok := s.peek()
+	return !ok || ch == '\r' || ch == '\n' || s.startsWith(blockOpen, s.pos)
 }
 
 func (s *scanner) scanUntil(terminators string) string {
 	start := s.pos
-	for s.pos < len(s.text) && !strings.ContainsRune(terminators, s.text[s.pos]) {
+	for s.pos < len(s.text) && !strings.ContainsRune(terminators, s.text[s.pos]) && !s.atComment(s.pos) {
 		s.pos++
 	}
 	return string(s.text[start:s.pos])

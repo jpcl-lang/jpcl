@@ -60,7 +60,9 @@ func (p *parser) parse() (*Object, error) {
 	current := root
 
 	for {
-		s.skipIgnorable()
+		if err := s.skipIgnorable(); err != nil {
+			return nil, err
+		}
 		if s.eof() {
 			return root, nil
 		}
@@ -93,9 +95,11 @@ func (p *parser) parseHeader(root *Object) (*Object, error) {
 	var path []string
 	pendingDot := false
 	for {
-		s.skipInline()
+		if err := s.skipInline(); err != nil {
+			return nil, err
+		}
 		ch, ok := s.peek()
-		if !ok || ch == '\r' || ch == '\n' {
+		if s.atLineEnd() {
 			return nil, s.errorAt("unterminated section header", start)
 		}
 		if ch == ']' {
@@ -124,7 +128,9 @@ func (p *parser) parseHeader(root *Object) (*Object, error) {
 		}
 		pendingDot = false
 
-		s.skipInline()
+		if err := s.skipInline(); err != nil {
+			return nil, err
+		}
 		ch, ok = s.peek()
 		if ok && ch == '.' {
 			s.advance()
@@ -135,14 +141,16 @@ func (p *parser) parseHeader(root *Object) (*Object, error) {
 			s.advance()
 			break
 		}
-		if !ok || ch == '\r' || ch == '\n' {
+		if s.atLineEnd() {
 			return nil, s.errorAt("unterminated section header", start)
 		}
 		return nil, s.errorHere(fmt.Sprintf("expected '.' or ']' in section header, found %s", s.describeHere()))
 	}
 
-	s.skipInline()
-	if ch, ok := s.peek(); ok && ch != '\r' && ch != '\n' {
+	if err := s.skipInline(); err != nil {
+		return nil, err
+	}
+	if !s.atLineEnd() {
 		return nil, s.errorHere(fmt.Sprintf("unexpected %s after section header", s.describeHere()))
 	}
 
@@ -181,14 +189,18 @@ func (p *parser) openSection(root *Object, path []string, start int) (*Object, e
 
 func (p *parser) parseEntry() (string, any, int, error) {
 	s := p.scanner
-	s.skipInline()
+	if err := s.skipInline(); err != nil {
+		return "", nil, 0, err
+	}
 	keyPos := s.pos
 	key, err := p.parseKey()
 	if err != nil {
 		return "", nil, 0, err
 	}
 
-	s.skipInline()
+	if err := s.skipInline(); err != nil {
+		return "", nil, 0, err
+	}
 	ch, ok := s.peek()
 	if !ok || ch != ':' {
 		return "", nil, 0, s.errorHere(fmt.Sprintf("expected ':' after key %s, found %s", strconv.Quote(key), s.describeHere()))
@@ -225,9 +237,10 @@ func (p *parser) parseKey() (string, error) {
 
 func (p *parser) parseOptionalValue() (any, error) {
 	s := p.scanner
-	s.skipInline()
-	ch, ok := s.peek()
-	if !ok || ch == ',' || ch == '\r' || ch == '\n' {
+	if err := s.skipInline(); err != nil {
+		return nil, err
+	}
+	if ch, ok := s.peek(); (ok && ch == ',') || s.atLineEnd() {
 		return nil, nil
 	}
 	return p.parseValue()
@@ -266,7 +279,9 @@ func (p *parser) parseObject() (*Object, error) {
 	obj := NewObject()
 
 	for {
-		s.skipIgnorable()
+		if err := s.skipIgnorable(); err != nil {
+			return nil, err
+		}
 		ch, ok := s.peek()
 		if !ok {
 			return nil, s.errorAt("unterminated object: missing '}'", start)
@@ -303,7 +318,9 @@ func (p *parser) parseArray() ([]any, error) {
 	items := []any{}
 
 	for {
-		s.skipIgnorable()
+		if err := s.skipIgnorable(); err != nil {
+			return nil, err
+		}
 		ch, ok := s.peek()
 		if !ok {
 			return nil, s.errorAt("unterminated array: missing ']'", start)
@@ -333,11 +350,13 @@ func (p *parser) parseArray() ([]any, error) {
 
 func (p *parser) consumeSeparator(closing string) error {
 	s := p.scanner
-	s.skipInline()
-	ch, ok := s.peek()
-	if !ok || ch == '\r' || ch == '\n' {
+	if err := s.skipInline(); err != nil {
+		return err
+	}
+	if s.atLineEnd() {
 		return nil
 	}
+	ch, _ := s.peek()
 	if ch == ',' {
 		s.advance()
 		return nil

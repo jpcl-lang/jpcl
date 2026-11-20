@@ -78,11 +78,59 @@ func TestEmptyValueBecomesNil(t *testing.T) {
 }
 
 func TestCommentsAndBlankLinesAreIgnored(t *testing.T) {
-	text := "\n    # leading comment\n\n    [s]   # after a header\n" +
-		"      a: 1  # after a value\n      # between entries\n      b: {\n" +
-		"        # inside an object\n        c: [1, 2]  # inside, after a value\n      }\n    "
+	text := "\n    $$ leading comment\n\n    [s]   $$ after a header\n" +
+		"      a: 1  $$ after a value\n      $$ between entries\n      b: {\n" +
+		"        $$ inside an object\n        c: [1, 2]  $$ inside, after a value\n      }\n    "
 	data := mustParse(t, text)
 	want := obj("s", obj("a", int64(1), "b", obj("c", []any{int64(1), int64(2)})))
+	if !reflect.DeepEqual(data, want) {
+		t.Fatalf("got %#v, want %#v", data, want)
+	}
+}
+
+func TestBlockCommentsAreIgnored(t *testing.T) {
+	text := "\n    $* a block comment\n       across lines *$\n    [s]  $* inline *$\n" +
+		"      a: $* before a value *$ 1\n      b: 2 $* after a value,\n" +
+		"              spanning lines *$\n      c: [1, $* inside *$ 2]\n    "
+	data := mustParse(t, text)
+	want := obj("s", obj("a", int64(1), "b", int64(2), "c", []any{int64(1), int64(2)}))
+	if !reflect.DeepEqual(data, want) {
+		t.Fatalf("got %#v, want %#v", data, want)
+	}
+}
+
+func TestBlockCommentSpanningLinesEndsTheEntry(t *testing.T) {
+	data := mustParse(t, "[s]\na: $* no\nvalue *$\nb: 1\n")
+	want := obj("s", obj("a", nil, "b", int64(1)))
+	if !reflect.DeepEqual(data, want) {
+		t.Fatalf("got %#v, want %#v", data, want)
+	}
+}
+
+func TestUnterminatedBlockCommentIsAnError(t *testing.T) {
+	_, err := jpcl.Parse("[s]\na: 1 $* never closed\n", jpcl.ParseOptions{})
+	if err == nil || !strings.Contains(err.Error(), "unterminated block comment") {
+		t.Fatalf("got %v, want an unterminated block comment error", err)
+	}
+}
+
+func TestBareValueStopsAtBlockComment(t *testing.T) {
+	data := mustParse(t, "[s]\na: hello$* note *$\n")
+	want := obj("s", obj("a", "hello"))
+	if !reflect.DeepEqual(data, want) {
+		t.Fatalf("got %#v, want %#v", data, want)
+	}
+}
+
+func TestHashAndSingleDollarArePlainCharacters(t *testing.T) {
+	data := mustParse(t, "[s]\ncolour: #8496AD\nprice: $5 $$ cost\n")
+	want := obj(
+		"s",
+		obj(
+			"colour", "#8496AD",
+			"price", "$5",
+		),
+	)
 	if !reflect.DeepEqual(data, want) {
 		t.Fatalf("got %#v, want %#v", data, want)
 	}
@@ -269,7 +317,7 @@ func TestEmptyDocument(t *testing.T) {
 	if data := mustParse(t, ""); data.Len() != 0 {
 		t.Fatalf("got %#v", data)
 	}
-	if data := mustParse(t, "# just a comment\n\n"); data.Len() != 0 {
+	if data := mustParse(t, "$$ just a comment\n\n"); data.Len() != 0 {
 		t.Fatalf("got %#v", data)
 	}
 }

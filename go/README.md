@@ -5,8 +5,9 @@ Go package for JPCL
 **A configuration language that borrows TOML's sections and JSON's nesting.**
 
 `.jp` files use `[SECTION]` headers at the top level and `{...}` / `[...]`
-structures inside them. Keys need no quotes, `#` starts a comment, trailing
-commas are fine, and a value is allowed to be *empty*.
+structures inside them. Keys need no quotes, `$$` starts a line comment,
+`$* ... *$` wraps a block comment, trailing commas are fine, and a value is
+allowed to be *empty*.
 
 ```jp
 [SERVER_ID]
