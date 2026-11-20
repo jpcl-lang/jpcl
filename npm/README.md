@@ -3,7 +3,7 @@
 JavaScript/TypeScript package for JPCL
 
 [![CI](https://github.com/jpcl-lang/jpcl-npm/actions/workflows/ci.yml/badge.svg)](https://github.com/jpcl-lang/jpcl-npm/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/jpcl)](https://www.npmjs.com/package/jpcl)
+[![npm](https://img.shields.io/npm/v/jpcl-lang)](https://www.npmjs.com/package/jpc-langl)
 
 **A configuration language that borrows TOML's sections and JSON's nesting.**
 
