@@ -89,4 +89,4 @@ jobs:
           path: out/
 
       - name: Publish
-        run: npm publish out/*.tgz --access public
+        run: npm publish ./out/*.tgz --access public
