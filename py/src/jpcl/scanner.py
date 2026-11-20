@@ -18,17 +18,26 @@ __all__ = ["Scanner", "interpret_bare", "KEYWORDS"]
 #: Whitespace that never terminates a line.
 INLINE_SPACE = " \t\f\v"
 
+#: Starts a comment that runs to the end of the line.
+LINE_COMMENT = "$$"
+
+#: Opens a block comment, which may span lines.
+BLOCK_OPEN = "$*"
+
+#: Closes a block comment.
+BLOCK_CLOSE = "*$"
+
 #: Characters that end an unquoted value.
-VALUE_END = frozenset(",}]\r\n#")
+VALUE_END = frozenset(",}]\r\n")
 
 #: Characters that end an unquoted key.  A key normally ends at its colon; the
 #: others are listed so that a missing colon is reported at the character that
 #: caused it rather than at the end of the line.  A bare key may contain spaces
 #: (``my key: 1``) but not brackets or quotes -- quote the key for those.
-KEY_END = frozenset(":,{}[]\"'\r\n#")
+KEY_END = frozenset(":,{}[]\"'\r\n")
 
 #: Characters that end one segment of a ``[dotted.header]``.
-HEADER_END = frozenset(".]\r\n#")
+HEADER_END = frozenset(".]\r\n")
 
 _ESCAPES = {
     '"': '"',
@@ -110,6 +119,11 @@ def interpret_bare(text: str) -> object:
         return token
 
 
+def _is_comment_at(text: str, i: int) -> bool:
+    """Whether a line or block comment starts at *i*."""
+    return text.startswith(LINE_COMMENT, i) or text.startswith(BLOCK_OPEN, i)
+
+
 class Scanner:
     """A cursor over the source text with lexical helpers.
 
@@ -164,32 +178,44 @@ class Scanner:
     # -- trivia ----------------------------------------------------------
 
     def skip_inline(self) -> None:
-        """Skip spaces, tabs and a ``#`` comment -- but never a line break."""
+        """Skip spaces, tabs and comments -- but never a line break.
+
+        A block comment that spans lines counts as a line break, so the cursor
+        stops on its ``$*``.
+        """
+        self._skip(newlines=False)
+
+    def skip_ignorable(self) -> None:
+        """Skip all whitespace (line breaks included) and comments."""
+        self._skip(newlines=True)
+
+    def _skip(self, newlines: bool) -> None:
         text, end, i = self.text, self._len, self.pos
         while i < end:
             char = text[i]
-            if char in INLINE_SPACE:
+            if char in INLINE_SPACE or (newlines and char in "\r\n"):
                 i += 1
-            elif char == "#":
+            elif text.startswith(LINE_COMMENT, i):
                 while i < end and text[i] not in "\r\n":
                     i += 1
+            elif text.startswith(BLOCK_OPEN, i):
+                close = text.find(BLOCK_CLOSE, i + len(BLOCK_OPEN))
+                if close < 0:
+                    raise self.error("unterminated block comment: missing '*$'", i)
+                after = close + len(BLOCK_CLOSE)
+                crosses_line = "\n" in text[i:after] or "\r" in text[i:after]
+                if crosses_line and not newlines:
+                    break
+                i = after
             else:
                 break
         self.pos = i
 
-    def skip_ignorable(self) -> None:
-        """Skip all whitespace (line breaks included) and comments."""
-        text, end, i = self.text, self._len, self.pos
-        while i < end:
-            char = text[i]
-            if char in INLINE_SPACE or char in "\r\n":
-                i += 1
-            elif char == "#":
-                while i < end and text[i] not in "\r\n":
-                    i += 1
-            else:
-                break
-        self.pos = i
+    def at_line_end(self) -> bool:
+        """Whether the cursor is at a line break, the end of the file, or a
+        block comment that spans lines (left there by :meth:`skip_inline`)."""
+        char = self.peek()
+        return char is None or char in "\r\n" or self.text.startswith(BLOCK_OPEN, self.pos)
 
     # -- literals --------------------------------------------------------
 
@@ -276,9 +302,9 @@ class Scanner:
         return chr(code), i
 
     def scan_until(self, terminators: frozenset[str]) -> str:
-        """Consume characters up to (not including) any of *terminators*."""
+        """Consume characters up to (not including) any of *terminators* or a comment."""
         text, end, i = self.text, self._len, self.pos
-        while i < end and text[i] not in terminators:
+        while i < end and text[i] not in terminators and not _is_comment_at(text, i):
             i += 1
         raw = text[self.pos : i]
         self.pos = i

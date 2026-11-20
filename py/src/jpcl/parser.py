@@ -102,7 +102,7 @@ class Parser:
         while True:
             scanner.skip_inline()
             char = scanner.peek()
-            if char is None or char in "\r\n":
+            if scanner.at_line_end():
                 raise scanner.error("unterminated section header", start)
             if char == "]":
                 if not path:
@@ -131,15 +131,14 @@ class Parser:
             if char == "]":
                 scanner.advance()
                 break
-            if char is None or char in "\r\n":
+            if scanner.at_line_end():
                 raise scanner.error("unterminated section header", start)
             raise scanner.error(
                 f"expected '.' or ']' in section header, found {scanner.describe_here()}"
             )
 
         scanner.skip_inline()
-        char = scanner.peek()
-        if char is not None and char not in "\r\n":
+        if not scanner.at_line_end():
             raise scanner.error(
                 f"unexpected {scanner.describe_here()} after section header"
             )
@@ -215,7 +214,7 @@ class Parser:
         scanner = self.scanner
         scanner.skip_inline()
         char = scanner.peek()
-        if char is None or char in ",\r\n":
+        if char == "," or scanner.at_line_end():
             return None
         return self._parse_value()
 
@@ -296,9 +295,9 @@ class Parser:
         """Require a ``,``, a line break, or the closing bracket after a value."""
         scanner = self.scanner
         scanner.skip_inline()
-        char = scanner.peek()
-        if char is None or char in "\r\n":
+        if scanner.at_line_end():
             return
+        char = scanner.peek()
         if char == ",":
             scanner.advance()
             return

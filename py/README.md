@@ -8,8 +8,9 @@ Python package for JPCL
 **A configuration language that borrows TOML's sections and JSON's nesting.**
 
 `.jp` files use `[SECTION]` headers at the top level and `{...}` / `[...]`
-structures inside them. Keys need no quotes, `#` starts a comment, trailing
-commas are fine, and a value is allowed to be *empty*.
+structures inside them. Keys need no quotes, `$$` starts a line comment,
+`$* ... *$` wraps a block comment, trailing commas are fine, and a value is
+allowed to be *empty*.
 
 ```jp
 [SERVER_ID]
@@ -77,8 +78,8 @@ prefix: "!"
 Headers may be dotted to nest, and quoted when a name contains a dot:
 
 ```jp
-[guild.limits]        # -> {"guild": {"limits": {...}}}
-["weird.name"]        # -> {"weird.name": {...}}
+[guild.limits]        $$ -> {"guild": {"limits": {...}}}
+["weird.name"]        $$ -> {"weird.name": {...}}
 ```
 
 Key/value pairs written *before* the first header land at the document root:
@@ -111,8 +112,8 @@ A key with nothing after the colon parses to `None`:
 
 ```jp
 config: {
-  disabled_channels:,      # -> None
-  timeout:                 # -> None
+  disabled_channels:,      $$ -> None
+  timeout:                 $$ -> None
 }
 ```
 

@@ -53,17 +53,52 @@ def test_empty_value_becomes_none():
 
 def test_comments_and_blank_lines_are_ignored():
     text = """
-    # leading comment
+    $$ leading comment
 
-    [s]   # after a header
-      a: 1  # after a value
-      # between entries
+    [s]   $$ after a header
+      a: 1  $$ after a value
+      $$ between entries
       b: {
-        # inside an object
-        c: [1, 2]  # inside, after a value
+        $$ inside an object
+        c: [1, 2]  $$ inside, after a value
       }
     """
     assert jpcl.loads(text) == {"s": {"a": 1, "b": {"c": [1, 2]}}}
+
+
+def test_block_comments_are_ignored():
+    text = """
+    $* a block comment
+       across lines *$
+    [s]  $* inline *$
+      a: $* before a value *$ 1
+      b: 2 $* after a value,
+              spanning lines *$
+      c: [1, $* inside *$ 2]
+    """
+    assert jpcl.loads(text) == {"s": {"a": 1, "b": 2, "c": [1, 2]}}
+
+
+def test_block_comment_spanning_lines_ends_the_entry():
+    text = "[s]\na: $* no\nvalue *$\nb: 1\n"
+    assert jpcl.loads(text)["s"] == {"a": None, "b": 1}
+
+
+def test_unterminated_block_comment_is_an_error():
+    with pytest.raises(jpcl.JPDecodeError, match="unterminated block comment"):
+        jpcl.loads("[s]\na: 1 $* never closed\n")
+
+
+def test_bare_value_stops_at_block_comment():
+    assert jpcl.loads("[s]\na: hello$* note *$\n")["s"] == {"a": "hello"}
+
+
+def test_hash_and_single_dollar_are_plain_characters():
+    text = "[s]\ncolour: #8496AD\nprice: $5 $$ cost\n"
+    assert jpcl.loads(text)["s"] == {
+        "colour": "#8496AD",
+        "price": "$5",
+    }
 
 
 def test_trailing_commas_are_allowed():
@@ -170,7 +205,7 @@ def test_empty_containers():
 
 def test_empty_document():
     assert jpcl.loads("") == {}
-    assert jpcl.loads("# just a comment\n\n") == {}
+    assert jpcl.loads("$$ just a comment\n\n") == {}
 
 
 def test_empty_section():
