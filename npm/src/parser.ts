@@ -119,7 +119,7 @@ export class Parser {
     while (true) {
       scanner.skipInline();
       let char = scanner.peek();
-      if (char === undefined || char === "\r" || char === "\n") {
+      if (scanner.atLineEnd()) {
         throw scanner.error("unterminated section header", start);
       }
       if (char === "]") {
@@ -148,7 +148,7 @@ export class Parser {
         scanner.advance();
         break;
       }
-      if (char === undefined || char === "\r" || char === "\n") {
+      if (scanner.atLineEnd()) {
         throw scanner.error("unterminated section header", start);
       }
       throw scanner.error(
@@ -157,8 +157,7 @@ export class Parser {
     }
 
     scanner.skipInline();
-    const char = scanner.peek();
-    if (char !== undefined && char !== "\r" && char !== "\n") {
+    if (!scanner.atLineEnd()) {
       throw scanner.error(`unexpected ${scanner.describeHere()} after section header`);
     }
 
@@ -231,7 +230,7 @@ export class Parser {
     const { scanner } = this;
     scanner.skipInline();
     const char = scanner.peek();
-    if (char === undefined || char === "," || char === "\r" || char === "\n") return null;
+    if (char === "," || scanner.atLineEnd()) return null;
     return this.parseValue();
   }
 
@@ -315,8 +314,8 @@ export class Parser {
   private consumeSeparator(closing: "}" | "]" | null): void {
     const { scanner } = this;
     scanner.skipInline();
+    if (scanner.atLineEnd()) return;
     const char = scanner.peek();
-    if (char === undefined || char === "\r" || char === "\n") return;
     if (char === ",") {
       scanner.advance();
       return;

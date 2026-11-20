@@ -20,8 +20,22 @@ export type IntegerMode = "auto" | "bigint" | "number";
 /** Whitespace that never terminates a line. */
 const INLINE_SPACE = new Set([" ", "\t", "\f", "\v"]);
 
+/** Starts a comment that runs to the end of the line. */
+export const LINE_COMMENT = "$$";
+
+/** Opens a block comment, which may span lines. */
+export const BLOCK_OPEN = "$*";
+
+/** Closes a block comment. */
+export const BLOCK_CLOSE = "*$";
+
+/** Whether a line or block comment starts at `i`. */
+function isCommentAt(text: string, i: number): boolean {
+  return text.startsWith(LINE_COMMENT, i) || text.startsWith(BLOCK_OPEN, i);
+}
+
 /** Characters that end an unquoted value. */
-export const VALUE_END = new Set([",", "}", "]", "\r", "\n", "#"]);
+export const VALUE_END = new Set([",", "}", "]", "\r", "\n"]);
 
 /**
  * Characters that end an unquoted key. A key normally ends at its colon; the
@@ -29,10 +43,10 @@ export const VALUE_END = new Set([",", "}", "]", "\r", "\n", "#"]);
  * caused it rather than at the end of the line. A bare key may contain spaces
  * (`my key: 1`) but not brackets or quotes -- quote the key for those.
  */
-export const KEY_END = new Set([":", ",", "{", "}", "[", "]", '"', "'", "\r", "\n", "#"]);
+export const KEY_END = new Set([":", ",", "{", "}", "[", "]", '"', "'", "\r", "\n"]);
 
 /** Characters that end one segment of a `[dotted.header]`. */
-export const HEADER_END = new Set([".", "]", "\r", "\n", "#"]);
+export const HEADER_END = new Set([".", "]", "\r", "\n"]);
 
 const ESCAPES: Record<string, string> = {
   '"': '"',
@@ -190,7 +204,10 @@ export class Scanner {
 
   // -- trivia ------------------------------------------------------------
 
-  /** Skip spaces, tabs and a `#` comment -- but never a line break. */
+  /**
+   * Skip spaces, tabs and comments -- but never a line break. A block comment
+   * that spans lines counts as a line break, so the cursor stops on its `$*`.
+   */
   skipInline(): void {
     this.skip(false);
   }
@@ -208,13 +225,34 @@ export class Scanner {
       const char = text[i]!;
       if (INLINE_SPACE.has(char) || (newlines && (char === "\r" || char === "\n"))) {
         i++;
-      } else if (char === "#") {
+      } else if (text.startsWith(LINE_COMMENT, i)) {
         while (i < end && text[i] !== "\r" && text[i] !== "\n") i++;
+      } else if (text.startsWith(BLOCK_OPEN, i)) {
+        const close = text.indexOf(BLOCK_CLOSE, i + BLOCK_OPEN.length);
+        if (close < 0) throw this.error("unterminated block comment: missing '*$'", i);
+        const after = close + BLOCK_CLOSE.length;
+        const crossesLine = /[\r\n]/.test(text.slice(i, after));
+        if (crossesLine && !newlines) break;
+        i = after;
       } else {
         break;
       }
     }
     this.pos = i;
+  }
+
+  /**
+   * Whether the cursor is at the end of a line: a line break, the end of the
+   * file, or a block comment that spans lines (left there by `skipInline`).
+   */
+  atLineEnd(): boolean {
+    const char = this.peek();
+    return (
+      char === undefined ||
+      char === "\r" ||
+      char === "\n" ||
+      this.text.startsWith(BLOCK_OPEN, this.pos)
+    );
   }
 
   // -- literals ----------------------------------------------------------
@@ -308,12 +346,12 @@ export class Scanner {
     return [String.fromCodePoint(code), i];
   }
 
-  /** Consume characters up to (not including) any of `terminators`. */
+  /** Consume characters up to (not including) any of `terminators` or a comment. */
   scanUntil(terminators: ReadonlySet<string>): string {
     const { text } = this;
     const end = text.length;
     let i = this.pos;
-    while (i < end && !terminators.has(text[i]!)) i++;
+    while (i < end && !terminators.has(text[i]!) && !isCommentAt(text, i)) i++;
     const raw = text.slice(this.pos, i);
     this.pos = i;
     return raw;

@@ -71,17 +71,49 @@ describe("reading", () => {
 
   test("comments and blank lines are ignored", () => {
     const text = `
-    # leading comment
+    $$ leading comment
 
-    [s]   # after a header
-      a: 1  # after a value
-      # between entries
+    [s]   $$ after a header
+      a: 1  $$ after a value
+      $$ between entries
       b: {
-        # inside an object
-        c: [1, 2]  # inside, after a value
+        $$ inside an object
+        c: [1, 2]  $$ inside, after a value
       }
     `;
     expect(jpcl.loads(text)).toEqual({ s: { a: 1, b: { c: [1, 2] } } });
+  });
+
+  test("block comments are ignored", () => {
+    const text = `
+    $* a block comment
+       across lines *$
+    [s]  $* inline *$
+      a: $* before a value *$ 1
+      b: 2 $* after a value,
+              spanning lines *$
+      c: [1, $* inside *$ 2]
+    `;
+    expect(jpcl.loads(text)).toEqual({ s: { a: 1, b: 2, c: [1, 2] } });
+  });
+
+  test("a block comment spanning lines ends the entry", () => {
+    expect(jpcl.loads("[s]\na: $* no\nvalue *$\nb: 1\n").s).toEqual({ a: null, b: 1 });
+  });
+
+  test("an unterminated block comment is an error", () => {
+    expect(() => jpcl.loads("[s]\na: 1 $* never closed\n")).toThrow(/unterminated block comment/);
+  });
+
+  test("a bare value stops at a block comment", () => {
+    expect(jpcl.loads("[s]\na: hello$* note *$\n").s).toEqual({ a: "hello" });
+  });
+
+  test("# and a single $ are plain characters", () => {
+    expect(jpcl.loads("[s]\ncolour: #8496AD\nprice: $5 $$ cost\n").s).toEqual({
+      colour: "#8496AD",
+      price: "$5",
+    });
   });
 
   test("trailing commas are allowed", () => {
@@ -209,7 +241,7 @@ describe("reading", () => {
 
   test("empty document", () => {
     expect(jpcl.loads("")).toEqual({});
-    expect(jpcl.loads("# just a comment\n\n")).toEqual({});
+    expect(jpcl.loads("$$ just a comment\n\n")).toEqual({});
   });
 
   test("empty section", () => {
