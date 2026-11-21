@@ -38,7 +38,7 @@ modules: {
 
 ## Implementations
 
-All four share the same format and the same writer, so a file written by one
+All five share the same format and the same writer, so a file written by one
 reads back unchanged in the others. A grammar, error
 message or writer change belongs in every implementation.
 
@@ -48,6 +48,7 @@ message or writer change belongs in every implementation.
 | Python | [`jpcl`](https://pypi.org/project/jpcl/) | `pip install jpcl` | [`py/`](py) |
 | Go | [`github.com/jpcl-lang/jpcl/go/v2`](https://pkg.go.dev/github.com/jpcl-lang/jpcl/go/v2) | `go get github.com/jpcl-lang/jpcl/go/v2` | [`go/`](go) |
 | Zig | `jpcl` | `zig fetch --save=jpcl <release tarball>` | [`zig/`](zig) |
+| Rust | [`jpcl`](https://crates.io/crates/jpcl) | `cargo add jpcl` | [`rust/`](rust) |
 
 None of them have runtime dependencies.
 
@@ -57,8 +58,7 @@ None of them have runtime dependencies.
 * **Go:** standard library only. See [`go/go.mod`](go/go.mod) for the minimum
   Go version.
 * **Zig:** Zig 0.16, standard library only. See [Zig](#zig) for the tarball URL.
-
-A Rust implementation is planned in [`rust/`](rust).
+* **Rust:** edition 2024, Rust 1.85+, no crate dependencies.
 
 ---
 
@@ -710,6 +710,65 @@ the `Object` directly.
 
 ---
 
+## Rust
+
+```bash
+cargo add jpcl
+```
+
+### Reading
+
+```rust
+fn main() -> Result<(), jpcl::Error> {
+    let root = jpcl::load("data/servers.jp", &Default::default())?;
+
+    // None when any part of the path is missing
+    if let Some(prefix) = jpcl::get_path(&root, "SERVER_ID_2.prefix").and_then(jpcl::Value::as_str) {
+        println!("{prefix}");
+    }
+    Ok(())
+}
+```
+
+A document is a `jpcl::Object`, which keeps keys in insertion order.
+`jpcl::Value` is an enum of `Null`, `Bool`, `Integer` (`i128`), `Float`,
+`String`, `Array` and `Object`. `parse` takes a `&str`, and `parse_bytes`
+takes raw bytes and reports invalid UTF-8 as a normal syntax error.
+
+### Errors
+
+`parse` returns a `DecodeError`, with `line`, `col`, `pos` and `message`
+fields. Its `Display` prints the same caret excerpt as the other ports:
+
+```rust
+let text = "[SERVER_ID]\nprefix \"!\"\n";
+if let Err(error) = jpcl::parse(text, &Default::default()) {
+    // servers.jp:2:8: expected ':' after key 'prefix', found '"'
+    eprintln!("{}", error.with_filename("servers.jp"));
+}
+```
+
+`load` and `dump` return `jpcl::Error`, which is either `Decode` or `Io`.
+
+### Writing
+
+```rust
+// Formatted, atomic write
+jpcl::dump(&root, "data/servers.jp", &Default::default())?;
+
+// To a string
+let options = jpcl::StringifyOptions { indent: 4, sort_keys: true, ..Default::default() };
+let text = jpcl::stringify(&root, &options);
+```
+
+`StringifyOptions` also takes `width` and `ensure_ascii`. `ParseOptions`
+takes `duplicate_keys` (`DuplicateKeys::Error`, `First` or `Last`).
+
+Like the Zig port, there is no `JPConfig` or `loadDir` yet. Use `get_path`,
+or work on the `Object` directly.
+
+---
+
 ## Errors
 
 A malformed document points at the exact offending character:
@@ -720,7 +779,7 @@ data/servers.jp:2:8: expected ':' after key 'prefix', found '"'
            ^
 ```
 
-The TypeScript, Python and Zig messages match byte for byte. Go quotes the key
+The TypeScript, Python, Zig and Rust messages match byte for byte. Go quotes the key
 with Go's `%q`, so it reads `after key "prefix"`.
 
 By default a repeated key is an error rather than a silent overwrite. Each
@@ -754,13 +813,14 @@ jpcl from-json -o data/servers.jp out.json
 | Python | `pip install jpcl`, then `jpcl ...` or `python -m jpcl ...` |
 | Go | `go install github.com/jpcl-lang/jpcl/go/v2/cmd/jpcl@latest` |
 | Zig | download it from a `zig/vX.Y.Z` release, or `cd zig && zig build -Doptimize=ReleaseSafe` |
+| Rust | `cargo install jpcl` |
 
 * **TypeScript:** large integers survive `to-json` and `from-json` intact.
-* **Zig:** integers up to 128 bits survive intact; larger ones become floats.
+* **Zig and Rust:** integers up to 128 bits survive intact; larger ones become floats.
 * **Go:** flags must come **before** positional arguments (`jpcl fmt -w file.jp`,
   not `jpcl fmt file.jp -w`) — a limitation of Go's standard `flag` package,
   which stops looking for flags at the first non-flag argument. The TypeScript,
-  Python and Zig versions allow either order.
+  Python, Zig and Rust versions allow either order.
 
 ---
 
@@ -840,9 +900,10 @@ Each implementation lives in its own folder with its own tests:
 * [`py/CONTRIBUTING.md`](py/CONTRIBUTING.md)
 * Go: `cd go && go test ./... -race`
 * Zig: `cd zig && zig build test`
+* Rust: `cd rust && cargo test`
 
 Releases are tagged per implementation as `npm/vX.Y.Z`, `py/vX.Y.Z`,
-`go/vX.Y.Z` or `zig/vX.Y.Z`. Each tag only triggers its own publish workflow.
+`go/vX.Y.Z`, `zig/vX.Y.Z` or `rust/vX.Y.Z`. Each tag only triggers its own publish workflow.
 
 ## Licence
 
