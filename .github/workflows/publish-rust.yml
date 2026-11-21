@@ -1,0 +1,68 @@
+# .github/workflows/publish-rust.yml
+name: Publish (rust)
+
+# A rust/vX.Y.Z tag publishes the crate to crates.io with trusted publishing
+# (OIDC), registered on crates.io for this repo, workflow and environment.
+# crates.io only allows a trusted publisher on a crate that already exists, so
+# the very first version has to be published by hand with `cargo publish`.
+
+on:
+  push:
+    tags:
+      - "rust/v[0-9]+.[0-9]+.[0-9]+"
+
+permissions: {}
+
+jobs:
+  publish:
+    name: Publish to crates.io
+    runs-on: ubuntu-latest
+    environment:
+      name: crates-io
+      url: https://crates.io/crates/jpcl
+    permissions:
+      # Mints the OIDC token crates.io trusts
+      id-token: write
+      # Creates the GitHub release
+      contents: write
+    defaults:
+      run:
+        working-directory: rust
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal
+
+      - name: Verify the tag matches Cargo.toml
+        run: |
+          set -euo pipefail
+          version=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
+          tag="${GITHUB_REF_NAME#rust/v}"
+          echo "Cargo.toml: $version / tag: $tag"
+          if [ "$version" != "$tag" ]; then
+            echo "::error::Cargo.toml version ($version) does not match the tag ($tag)"
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Run tests
+        run: cargo test
+
+      - name: Get a crates.io token
+        uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+
+      - name: Publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+        run: cargo publish
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "rust v${VERSION}" \
+            --notes "https://crates.io/crates/jpcl/${VERSION}"

@@ -1,0 +1,52 @@
+# .github/workflows/ci-rust.yml
+name: CI (rust)
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "rust/**"
+      - ".github/workflows/ci-rust.yml"
+  pull_request:
+    paths:
+      - "rust/**"
+      - ".github/workflows/ci-rust.yml"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ci-rust-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        working-directory: rust
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal --component rustfmt,clippy
+
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Run tests
+        run: cargo test
+
+      - name: Check the crate packages
+        run: cargo package
