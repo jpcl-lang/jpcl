@@ -32,7 +32,7 @@ test/
 └─ jpcl.test.ts
 ```
 
-The package mirrors [jpcl-py](https://github.com/jpcl-lang/jpcl-py) module for
+The package mirrors [jpcl-py](../py) module for
 module. Keep the two in step: a change to the grammar, the error messages or the
 writer's output belongs in both, so files move between them unchanged.
 
@@ -51,7 +51,7 @@ Nothing reachable from `core.ts` may import a `node:` module, so that
 bun test
 ```
 
-CI (`.github/workflows/ci.yml`) type-checks and runs the suite on Linux, Windows
+CI (`.github/workflows/ci-npm.yml`) type-checks and runs the suite on Linux, Windows
 and macOS for every push and pull request, validates the bundled `.jp` files,
 and smoke-tests the compiled package under each supported Node version.
 
@@ -60,7 +60,7 @@ comments, so formatting stays a manual choice.
 
 ## Releasing
 
-Publishing runs from `.github/workflows/publish.yml` using npm **Trusted
+Publishing runs from `.github/workflows/publish-npm.yml` using npm **Trusted
 Publishing** (OIDC), so there are no npm tokens or repository secrets to manage,
 and every release gets a provenance attestation.
 
@@ -75,14 +75,14 @@ and every release gets a provenance attestation.
    npm login
    npm publish --access public
    ```
-3. On <https://www.npmjs.com/package/jpcl/access>, add a trusted publisher:
+3. On <https://www.npmjs.com/package/jpcl-lang/access>, add a trusted publisher:
 
    | Field | Value |
    | --- | --- |
    | Publisher | GitHub Actions |
    | Organization or user | `jpcl-lang` |
-   | Repository | `jpcl-npm` |
-   | Workflow filename | `publish.yml` |
+   | Repository | `jpcl` |
+   | Workflow filename | `publish-npm.yml` |
    | Environment name | `npm` |
 
    While you are there, consider setting publishing access to *require
@@ -94,8 +94,8 @@ and every release gets a provenance attestation.
 ```bash
 # 1. bump "version" in package.json -- the only place it lives;
 #    the exported `version` and `jpcl --version` read it at runtime.
-git commit -am "Release 1.1.2"
-git tag v1.1.2
+git commit -am "npm: Release 1.1.2"
+git tag -a npm/v1.1.2 -m "npm 1.1.2"
 git push --follow-tags
 ```
 
@@ -105,9 +105,9 @@ type-checks, runs the tests, checks that the tag matches the version in
 provenance.
 
 The tag must match the version exactly — `"version": "1.1.1"` needs the tag
-`v1.1.1`, or the build fails before anything is published.
+`npm/v1.1.1`, or the build fails before anything is published.
 
 If publishing fails after the tarball was built, re-run the workflow from
-**Actions → Publish → Run workflow**. npm refuses to overwrite a version that
+**Actions → Publish (npm) → Run workflow**. npm refuses to overwrite a version that
 already exists, so a partially published release needs a version bump rather
 than a retry.

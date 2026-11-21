@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	jpcl "github.com/jpcl-lang/jpcl-go"
+	jpcl "github.com/jpcl-lang/jpcl/go"
 )
 
 const sample = `[SERVER_ID]

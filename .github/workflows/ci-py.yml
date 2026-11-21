@@ -1,16 +1,27 @@
-name: CI
+# .github/workflows/ci-py.yml
+name: CI (py)
 
 on:
   push:
     branches: [main, master]
+    paths:
+      - "py/**"
+      - ".github/workflows/ci-py.yml"
   pull_request:
+    paths:
+      - "py/**"
+      - ".github/workflows/ci-py.yml"
   workflow_dispatch:
 
 permissions: {}
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-py-${{ github.ref }}
   cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: py
 
 jobs:
   test:
@@ -31,6 +42,7 @@ jobs:
         with:
           python-version: "3.14"
           enable-cache: true
+          working-directory: py
 
       - name: Install the project
         run: uv sync --locked

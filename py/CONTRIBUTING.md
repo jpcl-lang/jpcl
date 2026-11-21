@@ -41,7 +41,7 @@ everywhere a value is expected.
 uv run pytest -q
 ```
 
-CI (`.github/workflows/ci.yml`) runs the suite on Linux, Windows and macOS for
+CI (`.github/workflows/ci-py.yml`) runs the suite on Linux, Windows and macOS for
 every push and pull request, and validates the bundled `.jp` files.
 
 `jpcl fmt` is deliberately *not* enforced in CI: rewriting a file drops its
@@ -49,7 +49,7 @@ comments, so formatting stays a manual choice.
 
 ## Releasing
 
-Publishing runs from `.github/workflows/publish.yml` using PyPI **Trusted
+Publishing runs from `.github/workflows/publish-py.yml` using PyPI **Trusted
 Publishing** (OIDC), so there are no API tokens or repository secrets to manage.
 
 ### One-time setup
@@ -62,9 +62,9 @@ Publishing** (OIDC), so there are no API tokens or repository secrets to manage.
    | Field | Value |
    | --- | --- |
    | PyPI project name | `jpcl` |
-   | Owner | `doughmination` |
+   | Owner | `jpcl-lang` |
    | Repository name | `jpcl` |
-   | Workflow name | `publish.yml` |
+   | Workflow name | `publish-py.yml` |
    | Environment name | `pypi` |
 
 ### Cutting a release
@@ -72,8 +72,8 @@ Publishing** (OIDC), so there are no API tokens or repository secrets to manage.
 ```bash
 # 1. bump [project] version in pyproject.toml -- the only place it lives;
 #    jpcl.__version__ is read from the installed distribution metadata.
-git commit -am "Release 1.0.1"
-git tag v1.0.1
+git commit -am "py: Release 1.0.1"
+git tag -a py/v1.0.1 -m "py 1.0.1"
 git push --follow-tags
 ```
 
@@ -83,10 +83,10 @@ builds an sdist and a wheel, verifies the metadata with `twine check --strict`,
 and uploads to PyPI with [PEP 740 attestations][attestations].
 
 The tag must match the version exactly — `version = "1.1.1"` needs the tag
-`v1.1.1`, or the build fails before anything is uploaded.
+`py/v1.1.1`, or the build fails before anything is uploaded.
 
 If an upload fails after the artifacts were built, re-run the workflow from
-**Actions → Publish → Run workflow**. Note that PyPI refuses to overwrite a
+**Actions → Publish (py) → Run workflow**. Note that PyPI refuses to overwrite a
 version that already exists, so a partially published release needs a version
 bump rather than a retry.
 

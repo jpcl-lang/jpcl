@@ -1,15 +1,22 @@
-name: CI
+# .github/workflows/ci-go.yml
+name: CI (go)
 
 on:
   push:
     branches: [main, master]
+    paths:
+      - "go/**"
+      - ".github/workflows/ci-go.yml"
   pull_request:
+    paths:
+      - "go/**"
+      - ".github/workflows/ci-go.yml"
   workflow_dispatch:
 
 permissions: {}
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-go-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -22,6 +29,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        working-directory: go
 
     steps:
       - uses: actions/checkout@v7
@@ -29,7 +39,8 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version-file: go/go.mod
+          cache-dependency-path: go/go.mod
 
       - name: Build
         run: go build ./...

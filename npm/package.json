@@ -11,16 +11,17 @@
     "jp",
     "jpcl"
   ],
-  "homepage": "https://github.com/jpcl-lang/jpcl-npm#readme",
+  "homepage": "https://github.com/jpcl-lang/jpcl#readme",
   "bugs": {
-    "url": "https://github.com/jpcl-lang/jpcl-npm/issues"
+    "url": "https://github.com/jpcl-lang/jpcl/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jpcl-lang/jpcl-npm.git"
+    "url": "git+https://github.com/jpcl-lang/jpcl.git",
+    "directory": "npm"
   },
   "license": "MIT",
-  "author": "Clove Twilight <admin@doughmination.win>",
+  "author": "Clove Twilight <clove@doughmination.gay>",
   "type": "module",
   "exports": {
     ".": {
@@ -49,7 +50,7 @@
     "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json",
     "typecheck": "tsc",
     "test": "bun test",
-    "prepack": "npm run build"
+    "prepack": "node -e \"require('node:fs').copyFileSync('../README.md','README.md')\" && npm run build"
   },
   "devDependencies": {
     "@types/bun": "^1.4.5",

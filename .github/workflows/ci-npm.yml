@@ -1,16 +1,27 @@
-name: CI
+# .github/workflows/ci-npm.yml
+name: CI (npm)
 
 on:
   push:
     branches: [main, master]
+    paths:
+      - "npm/**"
+      - ".github/workflows/ci-npm.yml"
   pull_request:
+    paths:
+      - "npm/**"
+      - ".github/workflows/ci-npm.yml"
   workflow_dispatch:
 
 permissions: {}
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-npm-${{ github.ref }}
   cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: npm
 
 jobs:
   test:

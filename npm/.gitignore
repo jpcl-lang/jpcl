@@ -36,3 +36,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # live configs stay local; templates are committed
 data/*.jp
 !data/*.example.jp
+
+# copied from the repo root by prepack
+README.md

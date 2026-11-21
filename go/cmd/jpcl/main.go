@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jpcl-lang/jpcl-go"
+	jpcl "github.com/jpcl-lang/jpcl/go"
 )
 
 const checkUsage = `usage: jpcl check [-q] files...

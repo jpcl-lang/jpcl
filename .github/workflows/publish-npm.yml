@@ -1,10 +1,11 @@
-name: Publish
+# .github/workflows/publish-npm.yml
+name: Publish (npm)
 
 # Publishes to npm with Trusted Publishing (OIDC) -- there are no npm tokens or
 # repository secrets to manage, and provenance is attached automatically.
-# See "Releasing" in CONTRIBUTING.md for the one-time npm setup this expects.
+# See "Releasing" in npm/CONTRIBUTING.md for the one-time npm setup this expects.
 #
-# Runs on a published GitHub Release, or manually to retry a failed upload.
+# Runs on a published GitHub Release tagged npm/vX.Y.Z, or manually to retry.
 
 on:
   release:
@@ -16,9 +17,13 @@ permissions: {}
 jobs:
   build:
     name: Build package
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'npm/v')
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    defaults:
+      run:
+        working-directory: npm
 
     steps:
       - uses: actions/checkout@v7
@@ -42,7 +47,7 @@ jobs:
         if: github.event_name == 'release'
         run: |
           version=$(node -p "require('./package.json').version")
-          tag="${GITHUB_REF_NAME#v}"
+          tag="${GITHUB_REF_NAME#npm/v}"
           echo "package.json: $version / tag: $tag"
           if [ "$version" != "$tag" ]; then
             echo "::error::package.json version ($version) does not match the release tag ($tag)"
@@ -58,7 +63,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: package
-          path: out/*.tgz
+          path: npm/out/*.tgz
           if-no-files-found: error
 
   npm:
@@ -67,11 +72,13 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: npm
-      url: https://www.npmjs.com/package/jpcl
+      url: https://www.npmjs.com/package/jpcl-lang
     permissions:
-      id-token: write   # mints the OIDC token npm trusts
+      # Mints the OIDC token npm trusts
+      id-token: write
       contents: read
-      actions: read     # lets download-artifact fetch the build output
+      # Lets download-artifact fetch the build output
+      actions: read
 
     steps:
       - uses: actions/setup-node@v6

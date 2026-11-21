@@ -1,0 +1,107 @@
+# .github/workflows/publish-go.yml
+name: Publish (go)
+
+# Go modules in a subdirectory are versioned by go/vX.Y.Z tags.
+# GoReleaser OSS only understands bare vX.Y.Z, so it builds against a
+# local-only vX.Y.Z tag and gh publishes the release under go/vX.Y.Z.
+
+on:
+  push:
+    tags:
+      - "go/v[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version part to bump
+        type: choice
+        required: true
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+
+permissions: {}
+
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: go
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go/go.mod
+          cache-dependency-path: go/go.mod
+
+      - name: Run tests
+        run: go test ./... -race
+
+      - name: Resolve the release tag
+        id: tag
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            tag="$GITHUB_REF_NAME"
+          else
+            latest=$(git tag -l 'go/v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n1)
+            latest=${latest:-go/v0.0.0}
+
+            IFS='.' read -r major minor patch <<< "${latest#go/v}"
+
+            case "${{ inputs.bump }}" in
+              major) major=$((major + 1)); minor=0; patch=0 ;;
+              minor) minor=$((minor + 1)); patch=0 ;;
+              patch) patch=$((patch + 1)) ;;
+            esac
+
+            tag="go/v${major}.${minor}.${patch}"
+            echo "Bumping ${latest} -> ${tag} (${{ inputs.bump }})"
+
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag -a "$tag" -m "Release $tag"
+            git push origin "$tag"
+          fi
+
+          version="${tag#go/}"
+
+          # Local only, never pushed: gives GoReleaser the bare semver tag it needs
+          git tag -f "$version" HEAD
+
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build with GoReleaser
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          distribution: goreleaser
+          version: "~> 2"
+          workdir: go
+          args: release --clean --skip=publish
+        env:
+          GORELEASER_CURRENT_TAG: ${{ steps.tag.outputs.version }}
+
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          gh release create "$TAG" \
+            --verify-tag \
+            --title "$TAG" \
+            --generate-notes \
+            dist/*.tar.gz \
+            dist/*.zip \
+            dist/checksums.txt

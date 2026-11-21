@@ -20,7 +20,7 @@ builds:
       - amd64
       - arm64
     ldflags:
-      - -s -w -X github.com/jpcl-lang/jpcl-go.Version={{ .Version }}
+      - -s -w -X github.com/jpcl-lang/jpcl/go.Version={{ .Version }}
 
 archives:
   - id: jpcl
@@ -32,7 +32,8 @@ archives:
       {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
     files:
       - LICENSE
-      - README.md
+      - src: ../README.md
+        strip_parent: true
 
 checksum:
   name_template: "checksums.txt"
@@ -48,4 +49,4 @@ changelog:
 release:
   github:
     owner: jpcl-lang
-    name: jpcl-go
+    name: jpcl

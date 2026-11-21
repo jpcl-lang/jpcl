@@ -4,7 +4,7 @@ version = "1.2.0"
 description = "A hybrid JSON/TOML configuration language (.jp files)"
 readme = "README.md"
 authors = [
-    { name = "Clove Twilight", email = "admin@doughmination.win" }
+    { name = "Clove Twilight", email = "clove@doughmination.gay" }
 ]
 requires-python = ">=3.14"
 dependencies = []
@@ -23,9 +23,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/jpcl-lang/jpcl-py"
-Repository = "https://github.com/jpcl-lang/jpcl-py"
-Issues = "https://github.com/jpcl-lang/jpcl-py/issues"
+Homepage = "https://github.com/jpcl-lang/jpcl#readme"
+Repository = "https://github.com/jpcl-lang/jpcl"
+Issues = "https://github.com/jpcl-lang/jpcl/issues"
 
 [project.scripts]
 jpcl = "jpcl.cli:main"
