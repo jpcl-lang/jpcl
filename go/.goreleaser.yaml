@@ -20,7 +20,7 @@ builds:
       - amd64
       - arm64
     ldflags:
-      - -s -w -X github.com/jpcl-lang/jpcl/go.Version={{ .Version }}
+      - -s -w -X github.com/jpcl-lang/jpcl/go/v2.Version={{ .Version }}
 
 archives:
   - id: jpcl

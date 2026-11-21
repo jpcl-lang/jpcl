@@ -21,13 +21,13 @@ export type IntegerMode = "auto" | "bigint" | "number";
 const INLINE_SPACE = new Set([" ", "\t", "\f", "\v"]);
 
 /** Starts a comment that runs to the end of the line. */
-export const LINE_COMMENT = "$$";
+export const LINE_COMMENT = "~~";
 
 /** Opens a block comment, which may span lines. */
-export const BLOCK_OPEN = "$*";
+export const BLOCK_OPEN = "~*";
 
 /** Closes a block comment. */
-export const BLOCK_CLOSE = "*$";
+export const BLOCK_CLOSE = "*~";
 
 /** Whether a line or block comment starts at `i`. */
 function isCommentAt(text: string, i: number): boolean {
@@ -206,7 +206,7 @@ export class Scanner {
 
   /**
    * Skip spaces, tabs and comments -- but never a line break. A block comment
-   * that spans lines counts as a line break, so the cursor stops on its `$*`.
+   * that spans lines counts as a line break, so the cursor stops on its `~*`.
    */
   skipInline(): void {
     this.skip(false);
@@ -229,7 +229,7 @@ export class Scanner {
         while (i < end && text[i] !== "\r" && text[i] !== "\n") i++;
       } else if (text.startsWith(BLOCK_OPEN, i)) {
         const close = text.indexOf(BLOCK_CLOSE, i + BLOCK_OPEN.length);
-        if (close < 0) throw this.error("unterminated block comment: missing '*$'", i);
+        if (close < 0) throw this.error("unterminated block comment: missing '*~'", i);
         const after = close + BLOCK_CLOSE.length;
         const crossesLine = /[\r\n]/.test(text.slice(i, after));
         if (crossesLine && !newlines) break;

@@ -4,16 +4,18 @@
 
 **A configuration language that borrows TOML's sections and JSON's nesting.**
 
+Documentation: **<https://jpcl.has-a.wiki>** · Website: <https://jpcl.doughmination.gay>
+
 [![CI (npm)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-npm.yml/badge.svg)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-npm.yml)
 [![CI (py)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-py.yml/badge.svg)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-py.yml)
 [![CI (go)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-go.yml/badge.svg)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-go.yml)
 [![npm](https://img.shields.io/npm/v/jpcl-lang)](https://www.npmjs.com/package/jpcl-lang)
 [![PyPI](https://img.shields.io/pypi/v/jpcl)](https://pypi.org/project/jpcl/)
-[![Go Reference](https://pkg.go.dev/badge/github.com/jpcl-lang/jpcl/go.svg)](https://pkg.go.dev/github.com/jpcl-lang/jpcl/go)
+[![Go Reference](https://pkg.go.dev/badge/github.com/jpcl-lang/jpcl/go/v2.svg)](https://pkg.go.dev/github.com/jpcl-lang/jpcl/go/v2)
 
 `.jp` files use `[SECTION]` headers at the top level and `{...}` / `[...]`
-structures inside them. Keys need no quotes, `$$` starts a line comment,
-`$* ... *$` wraps a block comment, trailing commas are fine, and a value is
+structures inside them. Keys need no quotes, `~~` starts a line comment,
+`~* ... *~` wraps a block comment, trailing commas are fine, and a value is
 allowed to be *empty*.
 
 ```jp
@@ -41,7 +43,7 @@ message or writer change belongs in every implementation.
 | --- | --- | --- | --- |
 | TypeScript / JavaScript | [`jpcl-lang`](https://www.npmjs.com/package/jpcl-lang) | `npm install jpcl-lang` | [`npm/`](npm) |
 | Python | [`jpcl`](https://pypi.org/project/jpcl/) | `pip install jpcl` | [`py/`](py) |
-| Go | [`github.com/jpcl-lang/jpcl/go`](https://pkg.go.dev/github.com/jpcl-lang/jpcl/go) | `go get github.com/jpcl-lang/jpcl/go` | [`go/`](go) |
+| Go | [`github.com/jpcl-lang/jpcl/go/v2`](https://pkg.go.dev/github.com/jpcl-lang/jpcl/go/v2) | `go get github.com/jpcl-lang/jpcl/go/v2` | [`go/`](go) |
 
 None of them have runtime dependencies.
 
@@ -90,8 +92,8 @@ prefix: "!"
 Headers may be dotted to nest, and quoted when a name contains a dot:
 
 ```jp
-[guild.limits]        $$ -> { guild: { limits: {...} } }
-["weird.name"]        $$ -> { "weird.name": {...} }
+[guild.limits]        ~~ -> { guild: { limits: {...} } }
+["weird.name"]        ~~ -> { "weird.name": {...} }
 ```
 
 Key/value pairs written *before* the first header land at the document root:
@@ -124,8 +126,8 @@ A key with nothing after the colon parses to null:
 
 ```jp
 config: {
-  disabled_channels:,      $$ -> null
-  timeout:                 $$ -> null
+  disabled_channels:,      ~~ -> null
+  timeout:                 ~~ -> null
 }
 ```
 
@@ -145,23 +147,30 @@ Because of this, **a value must start on the same line as its `:`**. An opening
 | Array | `[1, 2, 3]` | array | `list` | `[]any` |
 
 Unquoted values are read as a keyword first, then a number, then a plain string.
-Quote a value if it contains `$$`, `$*`, a comma, a bracket, or
-leading/trailing whitespace you want to keep. A lone `#` or `$` is just text, so
-`colour: #8496AD` and `price: $5` need no quotes.
+Quote a value if it contains `~~`, `~*`, a comma, a bracket, or
+leading/trailing whitespace you want to keep. A lone `~` is just text, as are
+`#` and `$`, so `home: ~/config`, `colour: #8496AD` and `price: $5` need no
+quotes.
 
 Strings honour the usual escapes — `\n`, `\t`, `\\`, `\"`, `\uXXXX`,
 `\U0001F600`, plus `\` at end of line to continue onto the next.
 
 ### Comments
 
-`$$` runs to the end of the line. `$* ... *$` wraps a block comment that may
+`~~` runs to the end of the line. `~* ... *~` wraps a block comment that may
 span lines. Both are allowed anywhere, including inside objects and arrays.
 
+> **Upgrading from 1.x?** Comments were `$$` and `$* ... *$` before 2.0.
+> Those are now plain text, so `a: 1 $$ note` reads as the string
+> `"1 $$ note"` rather than failing. Replace them before upgrading. Go users
+> also change the import path to `github.com/jpcl-lang/jpcl/go/v2`. See the
+> [upgrade guide](https://jpcl.has-a.wiki/guides/upgrading/).
+
 ```jp
-$* Server settings,
-   one section per guild *$
+~* Server settings,
+   one section per guild *~
 [SERVER_ID]
-prefix: "!"   $$ the command prefix
+prefix: "!"   ~~ the command prefix
 ```
 
 ---
@@ -423,7 +432,7 @@ package main
 import (
 	"fmt"
 
-	jpcl "github.com/jpcl-lang/jpcl/go"
+	jpcl "github.com/jpcl-lang/jpcl/go/v2"
 )
 
 func main() {
@@ -437,7 +446,7 @@ func main() {
 }
 ```
 
-The module path ends in `/go` but the package is named `jpcl`, so import it
+The module path ends in `/go/v2` but the package is named `jpcl`, so import it
 with the `jpcl` alias as above. The API follows the same rules as the other
 implementations, but leans on Go idioms rather than mirroring their syntax.
 
@@ -661,7 +670,7 @@ jpcl from-json -o data/servers.jp out.json
 | --- | --- |
 | TypeScript | `npm install jpcl-lang`, then `npx jpcl ...` |
 | Python | `pip install jpcl`, then `jpcl ...` or `python -m jpcl ...` |
-| Go | `go install github.com/jpcl-lang/jpcl/go/cmd/jpcl@latest` |
+| Go | `go install github.com/jpcl-lang/jpcl/go/v2/cmd/jpcl@latest` |
 
 * **TypeScript:** large integers survive `to-json` and `from-json` intact.
 * **Go:** flags must come **before** positional arguments (`jpcl fmt -w file.jp`,
@@ -677,10 +686,11 @@ jpcl from-json -o data/servers.jp out.json
 
 * every top-level object becomes a `[SECTION]`, separated by a blank line;
 * section entries sit one per line, with no separating commas;
+* inside a nested object, entries are separated by commas, JSON-style;
 * nested objects always expand across lines, `{}` being the only inline form;
 * arrays stay inline while they fit inside the width (default 88), then break
   one element per line;
-* null is written as an empty value inside objects (`key:`) and as `null`
+* null is written as an empty value (`key:`, or `key:,` before a comma) and as `null`
   inside arrays, since an array element cannot be empty;
 * insertion order is preserved unless keys are sorted.
 

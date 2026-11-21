@@ -19,13 +19,13 @@ __all__ = ["Scanner", "interpret_bare", "KEYWORDS"]
 INLINE_SPACE = " \t\f\v"
 
 #: Starts a comment that runs to the end of the line.
-LINE_COMMENT = "$$"
+LINE_COMMENT = "~~"
 
 #: Opens a block comment, which may span lines.
-BLOCK_OPEN = "$*"
+BLOCK_OPEN = "~*"
 
 #: Closes a block comment.
-BLOCK_CLOSE = "*$"
+BLOCK_CLOSE = "*~"
 
 #: Characters that end an unquoted value.
 VALUE_END = frozenset(",}]\r\n")
@@ -181,7 +181,7 @@ class Scanner:
         """Skip spaces, tabs and comments -- but never a line break.
 
         A block comment that spans lines counts as a line break, so the cursor
-        stops on its ``$*``.
+        stops on its ``~*``.
         """
         self._skip(newlines=False)
 
@@ -201,7 +201,7 @@ class Scanner:
             elif text.startswith(BLOCK_OPEN, i):
                 close = text.find(BLOCK_CLOSE, i + len(BLOCK_OPEN))
                 if close < 0:
-                    raise self.error("unterminated block comment: missing '*$'", i)
+                    raise self.error("unterminated block comment: missing '*~'", i)
                 after = close + len(BLOCK_CLOSE)
                 crosses_line = "\n" in text[i:after] or "\r" in text[i:after]
                 if crosses_line and not newlines:

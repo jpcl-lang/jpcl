@@ -3,7 +3,7 @@
  *
  * `.jp` files use TOML-style `[SECTION]` headers at the top level and
  * JSON-style `{...}` / `[...]` structures inside them, with unquoted keys and
- * `$$` line comments and `$* ... *$` block comments:
+ * `~~` line comments and `~* ... *~` block comments:
  *
  * ```
  * [SERVER_ID]

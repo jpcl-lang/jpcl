@@ -16,9 +16,9 @@ const (
 
 	// lineComment runs to the end of the line; blockOpen and blockClose wrap a
 	// comment that may span lines.
-	lineComment = "$$"
-	blockOpen   = "$*"
-	blockClose  = "*$"
+	lineComment = "~~"
+	blockOpen   = "~*"
+	blockClose  = "*~"
 )
 
 var simpleEscapes = map[rune]rune{
@@ -143,7 +143,7 @@ func (s *scanner) describeHere() string {
 }
 
 // skipInline skips spaces, tabs and comments, but never a line break. A block
-// comment that spans lines counts as a line break, so the cursor stops on its "$*".
+// comment that spans lines counts as a line break, so the cursor stops on its "~*".
 func (s *scanner) skipInline() error {
 	return s.skip(false)
 }
@@ -166,7 +166,7 @@ func (s *scanner) skip(newlines bool) error {
 		case s.startsWith(blockOpen, s.pos):
 			after, crossesLine, found := s.blockCommentEnd(s.pos)
 			if !found {
-				return s.errorAt("unterminated block comment: missing '*$'", s.pos)
+				return s.errorAt("unterminated block comment: missing '*~'", s.pos)
 			}
 			if crossesLine && !newlines {
 				return nil
@@ -179,7 +179,7 @@ func (s *scanner) skip(newlines bool) error {
 	return nil
 }
 
-// blockCommentEnd finds the "*$" closing the block comment opened at i.
+// blockCommentEnd finds the "*~" closing the block comment opened at i.
 func (s *scanner) blockCommentEnd(i int) (after int, crossesLine bool, found bool) {
 	for j := i + 2; j+1 < len(s.text); j++ {
 		if s.text[j] == '\r' || s.text[j] == '\n' {
