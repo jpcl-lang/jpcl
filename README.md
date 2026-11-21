@@ -9,9 +9,12 @@ Documentation: **<https://jpcl.has-a.wiki>** · Website: <https://jpcl.doughmina
 [![CI (npm)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-npm.yml/badge.svg)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-npm.yml)
 [![CI (py)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-py.yml/badge.svg)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-py.yml)
 [![CI (go)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-go.yml/badge.svg)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-go.yml)
+[![CI (zig)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-zig.yml/badge.svg)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-zig.yml)
+[![CI (rust)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-rust.yml/badge.svg)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-rust.yml)
 [![npm](https://img.shields.io/npm/v/jpcl-lang)](https://www.npmjs.com/package/jpcl-lang)
 [![PyPI](https://img.shields.io/pypi/v/jpcl)](https://pypi.org/project/jpcl/)
 [![Go Reference](https://pkg.go.dev/badge/github.com/jpcl-lang/jpcl/go/v2.svg)](https://pkg.go.dev/github.com/jpcl-lang/jpcl/go/v2)
+[![Zig release](https://img.shields.io/github/v/release/jpcl-lang/jpcl?filter=zig%2F*&label=release)](https://github.com/jpcl-lang/jpcl/releases/tag/zig/v2.0.0)
 
 `.jp` files use `[SECTION]` headers at the top level and `{...}` / `[...]`
 structures inside them. Keys need no quotes, `~~` starts a line comment,
