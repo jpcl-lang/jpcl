@@ -1,0 +1,54 @@
+# .github/workflows/ci-zig.yml
+name: CI (zig)
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "zig/**"
+      - ".github/workflows/ci-zig.yml"
+  pull_request:
+    paths:
+      - "zig/**"
+      - ".github/workflows/ci-zig.yml"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ci-zig-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        working-directory: zig
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+
+      - name: Check formatting
+        run: zig fmt --check build.zig build.zig.zon src
+
+      - name: Run tests
+        run: zig build test --summary all
+
+      # Note: 'jpcl fmt' is deliberately not enforced here -- rewriting a file
+      # drops its comments, so formatting stays a manual choice.
+      - name: Validate the bundled .jp file
+        shell: bash
+        run: zig build run -- check data/*.jp

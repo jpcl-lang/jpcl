@@ -1,0 +1,78 @@
+# .github/workflows/publish-zig.yml
+name: Publish (zig)
+
+# Zig fetches a package as an archive with build.zig.zon at its top level, so a
+# zig/vX.Y.Z tag publishes the zig/ folder as a tarball on a GitHub release,
+# along with prebuilt jpcl CLI binaries.
+
+on:
+  push:
+    tags:
+      - "zig/v[0-9]+.[0-9]+.[0-9]+"
+
+permissions: {}
+
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: zig
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+
+      - name: Verify the tag matches build.zig.zon
+        run: |
+          set -euo pipefail
+          version=$(grep -oP '^\s*\.version = "\K[^"]+' build.zig.zon)
+          tag="${GITHUB_REF_NAME#zig/v}"
+          echo "build.zig.zon: $version / tag: $tag"
+          if [ "$version" != "$tag" ]; then
+            echo "::error::build.zig.zon version ($version) does not match the tag ($tag)"
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Run tests
+        run: zig build test --summary all
+
+      - name: Package the source
+        run: |
+          set -euo pipefail
+          mkdir -p ../dist
+          tar -czf "../dist/jpcl-zig-${VERSION}.tar.gz" --transform 's,^,jpcl/,' \
+            build.zig build.zig.zon LICENSE src
+
+      - name: Build CLI binaries
+        run: |
+          set -euo pipefail
+          for target in x86_64-linux aarch64-linux x86_64-macos aarch64-macos x86_64-windows aarch64-windows; do
+            zig build -Doptimize=ReleaseSafe -Dtarget="$target" --prefix "out/$target"
+            name="jpcl-${VERSION}-${target}"
+            if [[ "$target" == *windows ]]; then
+              (cd "out/$target/bin" && zip -q "../../../../dist/${name}.zip" jpcl.exe)
+            else
+              tar -czf "../dist/${name}.tar.gz" -C "out/$target/bin" jpcl
+            fi
+          done
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" ../dist/* \
+            --title "zig v${VERSION}" \
+            --notes "Add it to a Zig 0.16 project with:
+
+          \`\`\`
+          zig fetch --save=jpcl https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/jpcl-zig-${VERSION}.tar.gz
+          \`\`\`"

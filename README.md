@@ -35,7 +35,7 @@ modules: {
 
 ## Implementations
 
-All three share the same format and the same writer, so a file written by one
+All four share the same format and the same writer, so a file written by one
 reads back unchanged in the others. A grammar, error
 message or writer change belongs in every implementation.
 
@@ -44,6 +44,7 @@ message or writer change belongs in every implementation.
 | TypeScript / JavaScript | [`jpcl-lang`](https://www.npmjs.com/package/jpcl-lang) | `npm install jpcl-lang` | [`npm/`](npm) |
 | Python | [`jpcl`](https://pypi.org/project/jpcl/) | `pip install jpcl` | [`py/`](py) |
 | Go | [`github.com/jpcl-lang/jpcl/go/v2`](https://pkg.go.dev/github.com/jpcl-lang/jpcl/go/v2) | `go get github.com/jpcl-lang/jpcl/go/v2` | [`go/`](go) |
+| Zig | `jpcl` | `zig fetch --save=jpcl <release tarball>` | [`zig/`](zig) |
 
 None of them have runtime dependencies.
 
@@ -52,8 +53,9 @@ None of them have runtime dependencies.
 * **Python:** Python 3.14+. Also `uv add jpcl`.
 * **Go:** standard library only. See [`go/go.mod`](go/go.mod) for the minimum
   Go version.
+* **Zig:** Zig 0.16, standard library only. See [Zig](#zig) for the tarball URL.
 
-Rust and Zig implementations are planned in [`rust/`](rust) and [`zig/`](zig).
+A Rust implementation is planned in [`rust/`](rust).
 
 ---
 
@@ -628,6 +630,83 @@ for a one-off different format.
 
 ---
 
+## Zig
+
+Needs Zig 0.16. Each `zig/vX.Y.Z` release carries a source tarball. Add it to
+your project:
+
+```bash
+zig fetch --save=jpcl https://github.com/jpcl-lang/jpcl/releases/download/zig%2Fv2.0.0/jpcl-zig-2.0.0.tar.gz
+```
+
+Then import the module in `build.zig`:
+
+```zig
+const jpcl = b.dependency("jpcl", .{ .target = target, .optimize = optimize });
+exe.root_module.addImport("jpcl", jpcl.module("jpcl"));
+```
+
+### Reading
+
+```zig
+const std = @import("std");
+const jpcl = @import("jpcl");
+
+pub fn main(init: std.process.Init) !void {
+    const parsed = try jpcl.load(init.gpa, init.io, "data/servers.jp", .{});
+    defer parsed.deinit();
+
+    // Null when any part of the path is missing
+    if (jpcl.getPath(parsed.value, "SERVER_ID.prefix")) |prefix| {
+        std.debug.print("{s}\n", .{prefix.string});
+    }
+}
+```
+
+A document is a `jpcl.Object`, an insertion-ordered
+`std.StringArrayHashMapUnmanaged(jpcl.Value)`. `jpcl.Value` is a tagged union
+of `.null`, `.bool`, `.integer` (`i128`), `.float`, `.string`, `.array` and
+`.object`. `parse` and `load` return a `Parsed` that owns all of it in one
+arena; `deinit` frees everything at once.
+
+### Errors
+
+A syntax error returns `error.SyntaxError`. Pass a `Diagnostic` to find out
+where and why:
+
+```zig
+var diagnostic: jpcl.Diagnostic = .{};
+const parsed = jpcl.parse(gpa, text, .{ .diagnostic = &diagnostic }) catch |err| switch (err) {
+    error.SyntaxError => {
+        // servers.jp:2:8: expected ':' after key 'prefix', found '"'
+        try diagnostic.render(stderr, text, "servers.jp");
+        return;
+    },
+    else => return err,
+};
+```
+
+`diagnostic.line`, `.col` and `.message` are there for editors and tooling.
+
+### Writing
+
+```zig
+// Formatted, atomic write
+try jpcl.dump(gpa, io, parsed.value, "data/servers.jp", .{});
+
+// To a string; the caller frees it
+const text = try jpcl.stringify(gpa, parsed.value, .{ .indent = 4, .sort_keys = true });
+defer gpa.free(text);
+```
+
+`StringifyOptions` also takes `width` and `ensure_ascii`. `ParseOptions`
+takes `duplicate_keys` (`.@"error"`, `.first` or `.last`).
+
+The Zig port has no `JPConfig` or `loadDir` yet. Use `getPath`, or work on
+the `Object` directly.
+
+---
+
 ## Errors
 
 A malformed document points at the exact offending character:
@@ -638,7 +717,7 @@ data/servers.jp:2:8: expected ':' after key 'prefix', found '"'
            ^
 ```
 
-The TypeScript and Python messages match byte for byte. Go quotes the key
+The TypeScript, Python and Zig messages match byte for byte. Go quotes the key
 with Go's `%q`, so it reads `after key "prefix"`.
 
 By default a repeated key is an error rather than a silent overwrite. Each
@@ -671,12 +750,14 @@ jpcl from-json -o data/servers.jp out.json
 | TypeScript | `npm install jpcl-lang`, then `npx jpcl ...` |
 | Python | `pip install jpcl`, then `jpcl ...` or `python -m jpcl ...` |
 | Go | `go install github.com/jpcl-lang/jpcl/go/v2/cmd/jpcl@latest` |
+| Zig | download it from a `zig/vX.Y.Z` release, or `cd zig && zig build -Doptimize=ReleaseSafe` |
 
 * **TypeScript:** large integers survive `to-json` and `from-json` intact.
+* **Zig:** integers up to 128 bits survive intact; larger ones become floats.
 * **Go:** flags must come **before** positional arguments (`jpcl fmt -w file.jp`,
   not `jpcl fmt file.jp -w`) — a limitation of Go's standard `flag` package,
-  which stops looking for flags at the first non-flag argument. The TypeScript
-  and Python versions allow either order.
+  which stops looking for flags at the first non-flag argument. The TypeScript,
+  Python and Zig versions allow either order.
 
 ---
 
@@ -755,10 +836,11 @@ Each implementation lives in its own folder with its own tests:
 * [`npm/CONTRIBUTING.md`](npm/CONTRIBUTING.md)
 * [`py/CONTRIBUTING.md`](py/CONTRIBUTING.md)
 * Go: `cd go && go test ./... -race`
+* Zig: `cd zig && zig build test`
 
-Releases are tagged per implementation as `npm/vX.Y.Z`, `py/vX.Y.Z` or
-`go/vX.Y.Z`. Each tag only triggers its own publish workflow.
+Releases are tagged per implementation as `npm/vX.Y.Z`, `py/vX.Y.Z`,
+`go/vX.Y.Z` or `zig/vX.Y.Z`. Each tag only triggers its own publish workflow.
 
 ## Licence
 
-MIT.
+MIT. See [`LICENSE`](LICENSE).
