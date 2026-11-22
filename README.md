@@ -4,7 +4,7 @@
 
 **A configuration language that borrows TOML's sections and JSON's nesting.**
 
-Documentation: **<https://jpcl.has-a.wiki>** · Website: <https://jpcl.doughmination.gay>
+Documentation: **<https://jpcl.isy-a.wiki>** · Website: <https://jpcl.doughmination.gay>
 
 [![CI (npm)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-npm.yml/badge.svg)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-npm.yml)
 [![CI (py)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-py.yml/badge.svg)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-py.yml)
