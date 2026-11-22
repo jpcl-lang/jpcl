@@ -11,9 +11,11 @@ Documentation: **<https://jpcl.has-a.wiki>** · Website: <https://jpcl.doughmina
 [![CI (go)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-go.yml/badge.svg)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-go.yml)
 [![CI (zig)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-zig.yml/badge.svg)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-zig.yml)
 [![CI (rust)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-rust.yml/badge.svg)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-rust.yml)
+[![CI (java)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-java.yml/badge.svg)](https://github.com/jpcl-lang/jpcl/actions/workflows/ci-java.yml)
 [![npm](https://img.shields.io/npm/v/jpcl-lang)](https://www.npmjs.com/package/jpcl-lang)
 [![PyPI](https://img.shields.io/pypi/v/jpcl)](https://pypi.org/project/jpcl/)
 [![Go Reference](https://pkg.go.dev/badge/github.com/jpcl-lang/jpcl/go/v2.svg)](https://pkg.go.dev/github.com/jpcl-lang/jpcl/go/v2)
+[![Maven Central](https://img.shields.io/maven-central/v/gay.doughmination.jpcl/jpcl)](https://central.sonatype.com/artifact/gay.doughmination.jpcl/jpcl)
 [![Zig release](https://img.shields.io/github/v/release/jpcl-lang/jpcl?filter=zig%2F*&label=release)](https://github.com/jpcl-lang/jpcl/releases/tag/zig/v2.0.0)
 
 `.jp` files use `[SECTION]` headers at the top level and `{...}` / `[...]`
@@ -38,7 +40,7 @@ modules: {
 
 ## Implementations
 
-All five share the same format and the same writer, so a file written by one
+All six share the same format and the same writer, so a file written by one
 reads back unchanged in the others. A grammar, error
 message or writer change belongs in every implementation.
 
@@ -49,6 +51,7 @@ message or writer change belongs in every implementation.
 | Go | [`github.com/jpcl-lang/jpcl/go/v2`](https://pkg.go.dev/github.com/jpcl-lang/jpcl/go/v2) | `go get github.com/jpcl-lang/jpcl/go/v2` | [`go/`](go) |
 | Zig | `jpcl` | `zig fetch --save=jpcl <release tarball>` | [`zig/`](zig) |
 | Rust | [`jpcl`](https://crates.io/crates/jpcl) | `cargo add jpcl` | [`rust/`](rust) |
+| Java | [`gay.doughmination.jpcl:jpcl`](https://central.sonatype.com/artifact/gay.doughmination.jpcl/jpcl) | Maven or Gradle, see [Java](#java) | [`java/`](java) |
 
 None of them have runtime dependencies.
 
@@ -59,6 +62,7 @@ None of them have runtime dependencies.
   Go version.
 * **Zig:** Zig 0.16, standard library only. See [Zig](#zig) for the tarball URL.
 * **Rust:** edition 2024, Rust 1.85+, no crate dependencies.
+* **Java:** Java 22+, standard library only.
 
 ---
 
@@ -769,6 +773,91 @@ or work on the `Object` directly.
 
 ---
 
+## Java
+
+Needs Java 22 or newer. Maven:
+
+```xml
+<dependency>
+    <groupId>gay.doughmination.jpcl</groupId>
+    <artifactId>jpcl</artifactId>
+    <version>2.0.0</version>
+</dependency>
+```
+
+Gradle:
+
+```kotlin
+implementation("gay.doughmination.jpcl:jpcl:2.0.0")
+```
+
+### Reading
+
+```java
+import gay.doughmination.jpcl.JPObject;
+import gay.doughmination.jpcl.Jpcl;
+import gay.doughmination.jpcl.Value;
+
+import java.nio.file.Path;
+
+JPObject root = Jpcl.load(Path.of("data/servers.jp"));
+
+// Empty when any part of the path is missing
+Jpcl.getPath(root, "SERVER_ID_2.prefix")
+    .flatMap(Value::asString)
+    .ifPresent(System.out::println);
+```
+
+A document is a `JPObject`, which keeps keys in insertion order. `Value` is
+a sealed interface over `Value.Null`, `Value.Bool`, `Value.Int` (a
+`BigInteger` up to 128 bits), `Value.Float`, `Value.Text`, `Value.Array`
+and `JPObject`, so a `switch` over it is checked for exhaustiveness.
+`parse` takes a `String`, and `parseBytes` takes raw bytes and reports
+invalid UTF-8 as a normal syntax error.
+
+### Errors
+
+`parse` throws a checked `JPDecodeException`, with `line()`, `col()`,
+`pos()` and `rawMessage()`. Its `getMessage()` is the same caret excerpt as
+the other ports:
+
+```java
+try {
+    Jpcl.parse("[SERVER_ID]\nprefix \"!\"\n");
+} catch (JPDecodeException error) {
+    // servers.jp:2:8: expected ':' after key 'prefix', found '"'
+    System.err.println(error.withFilename("servers.jp").getMessage());
+}
+```
+
+`load` and `dump` also throw `IOException`.
+
+### Writing
+
+```java
+// Formatted, atomic write
+Jpcl.dump(root, Path.of("data/servers.jp"));
+
+// To a string
+StringifyOptions options = StringifyOptions.DEFAULT
+    .withIndent(4)
+    .withSortKeys(true);
+String text = Jpcl.stringify(root, options);
+
+// Building a document
+JPObject server = new JPObject()
+    .put("prefix", "!")
+    .put("id", 1234567890L);
+```
+
+`StringifyOptions` also has `withWidth` and `withEnsureAscii`.
+`ParseOptions` takes a `DuplicateKeys` (`ERROR`, `FIRST` or `LAST`).
+
+Like the Zig and Rust ports, there is no `JPConfig` or `loadDir` yet. Use
+`getPath`, or work on the `JPObject` directly.
+
+---
+
 ## Errors
 
 A malformed document points at the exact offending character:
@@ -779,7 +868,7 @@ data/servers.jp:2:8: expected ':' after key 'prefix', found '"'
            ^
 ```
 
-The TypeScript, Python, Zig and Rust messages match byte for byte. Go quotes the key
+The TypeScript, Python, Zig, Rust and Java messages match byte for byte. Go quotes the key
 with Go's `%q`, so it reads `after key "prefix"`.
 
 By default a repeated key is an error rather than a silent overwrite. Each
@@ -814,13 +903,14 @@ jpcl from-json -o data/servers.jp out.json
 | Go | `go install github.com/jpcl-lang/jpcl/go/v2/cmd/jpcl@latest` |
 | Zig | download it from a `zig/vX.Y.Z` release, or `cd zig && zig build -Doptimize=ReleaseSafe` |
 | Rust | `cargo install jpcl` |
+| Java | download the jar from a `java/vX.Y.Z` release, then `java -jar jpcl-2.0.0.jar ...` |
 
 * **TypeScript:** large integers survive `to-json` and `from-json` intact.
-* **Zig and Rust:** integers up to 128 bits survive intact; larger ones become floats.
+* **Zig, Rust and Java:** integers up to 128 bits survive intact; larger ones become floats.
 * **Go:** flags must come **before** positional arguments (`jpcl fmt -w file.jp`,
   not `jpcl fmt file.jp -w`) — a limitation of Go's standard `flag` package,
   which stops looking for flags at the first non-flag argument. The TypeScript,
-  Python, Zig and Rust versions allow either order.
+  Python, Zig, Rust and Java versions allow either order.
 
 ---
 
@@ -901,9 +991,10 @@ Each implementation lives in its own folder with its own tests:
 * Go: `cd go && go test ./... -race`
 * Zig: `cd zig && zig build test`
 * Rust: `cd rust && cargo test`
+* Java: `cd java && mvn verify`
 
 Releases are tagged per implementation as `npm/vX.Y.Z`, `py/vX.Y.Z`,
-`go/vX.Y.Z`, `zig/vX.Y.Z` or `rust/vX.Y.Z`. Each tag only triggers its own publish workflow.
+`go/vX.Y.Z`, `zig/vX.Y.Z`, `rust/vX.Y.Z` or `java/vX.Y.Z`. Each tag only triggers its own publish workflow.
 
 ## Licence
 

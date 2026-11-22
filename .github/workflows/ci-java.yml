@@ -1,0 +1,47 @@
+# .github/workflows/ci-java.yml
+name: CI (java)
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "java/**"
+      - ".github/workflows/ci-java.yml"
+  pull_request:
+    paths:
+      - "java/**"
+      - ".github/workflows/ci-java.yml"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ci-java-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        working-directory: java
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "22"
+          cache: maven
+
+      - name: Build, test and package
+        run: mvn -B verify

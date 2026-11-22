@@ -1,0 +1,72 @@
+# .github/workflows/publish-java.yml
+name: Publish (java)
+
+# A java/vX.Y.Z tag signs the jars and publishes them to Maven Central through
+# the Central Portal. Needs four repository secrets:
+#   CENTRAL_USERNAME, CENTRAL_PASSWORD  a Central Portal user token
+#   GPG_PRIVATE_KEY, GPG_PASSPHRASE     the armoured signing key and its passphrase
+
+on:
+  push:
+    tags:
+      - "java/v[0-9]+.[0-9]+.[0-9]+"
+
+permissions: {}
+
+jobs:
+  publish:
+    name: Publish to Maven Central
+    runs-on: ubuntu-latest
+    environment:
+      name: maven-central
+      url: https://central.sonatype.com/artifact/gay.doughmination.jpcl/jpcl
+    permissions:
+      # Creates the GitHub release
+      contents: write
+    defaults:
+      run:
+        working-directory: java
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "22"
+          cache: maven
+          server-id: central
+          server-username: CENTRAL_USERNAME
+          server-password: CENTRAL_PASSWORD
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: GPG_PASSPHRASE
+
+      - name: Verify the tag matches pom.xml
+        run: |
+          set -euo pipefail
+          version=$(mvn -B -q help:evaluate -Dexpression=project.version -DforceStdout)
+          tag="${GITHUB_REF_NAME#java/v}"
+          echo "pom.xml: $version / tag: $tag"
+          if [ "$version" != "$tag" ]; then
+            echo "::error::pom.xml version ($version) does not match the tag ($tag)"
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Publish
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: mvn -B -P release deploy
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "java v${VERSION}" \
+            --notes "https://central.sonatype.com/artifact/gay.doughmination.jpcl/jpcl/${VERSION}" \
+            "target/jpcl-${VERSION}.jar"
