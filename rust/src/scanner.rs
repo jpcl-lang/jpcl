@@ -117,8 +117,10 @@ impl<'a> Scanner<'a> {
         let text = self.text;
         let bytes = self.bytes();
         let mut i = self.pos;
+
         while i < bytes.len() {
             let byte = bytes[i];
+
             if is_inline_space(byte) || (newlines && is_line_break(byte)) {
                 i += 1;
             } else if text[i..].starts_with(LINE_COMMENT) {
@@ -131,14 +133,17 @@ impl<'a> Scanner<'a> {
                 };
                 let after = i + BLOCK_OPEN.len() + close + BLOCK_CLOSE.len();
                 let crosses_line = text[i..after].contains(['\r', '\n']);
+
                 if crosses_line && !newlines {
                     break;
                 }
+
                 i = after;
             } else {
                 break;
             }
         }
+
         self.pos = i;
         Ok(())
     }
@@ -167,18 +172,22 @@ impl<'a> Scanner<'a> {
             if i >= bytes.len() {
                 return Err(self.error_at(start, "unterminated string literal".into()));
             }
+
             let byte = bytes[i];
+
             if byte == quote {
                 self.pos = i + 1;
                 out.push_str(&text[literal_from..i]);
                 return Ok(out);
             }
+
             if is_line_break(byte) {
                 return Err(self.error_at(
                     start,
                     "unterminated string literal (use \\n for a line break)".into(),
-                ));
+                    ));
             }
+
             if byte != b'\\' {
                 i += 1;
                 continue;
@@ -187,9 +196,11 @@ impl<'a> Scanner<'a> {
             out.push_str(&text[literal_from..i]);
             let escape_at = i;
             i += 1;
+
             if i >= bytes.len() {
                 return Err(self.error_at(escape_at, "unterminated escape sequence".into()));
             }
+
             let marker = bytes[i];
 
             if let Some(decoded) = simple_escape(marker) {
@@ -200,9 +211,11 @@ impl<'a> Scanner<'a> {
             } else if is_line_break(marker) {
                 // Backslash-newline continues the string, eating the indent
                 i += 1;
+
                 if marker == b'\r' && bytes.get(i) == Some(&b'\n') {
                     i += 1;
                 }
+
                 while i < bytes.len() && is_inline_space(bytes[i]) {
                     i += 1;
                 }
@@ -212,6 +225,7 @@ impl<'a> Scanner<'a> {
                     self.error_at(escape_at, format!("invalid escape sequence '\\{shown}'"))
                 );
             }
+
             literal_from = i;
         }
     }
@@ -235,14 +249,14 @@ impl<'a> Scanner<'a> {
                 escape_at,
                 format!("'\\{marker}' escape needs {width} hex digits"),
             )
-        })?;
+            })?;
         let mut code = u32::from_str_radix(digits, 16).unwrap();
         let mut i = marker_at + 1 + width;
 
         // Recombine a UTF-16 surrogate pair, as JSON encoders emit them
         if marker == 'u' && (0xd800..=0xdbff).contains(&code) && text[i..].starts_with("\\u") {
             if let Some(low) =
-                hex_digits(text, i + 2, 4).map(|low| u32::from_str_radix(low, 16).unwrap())
+            hex_digits(text, i + 2, 4).map(|low| u32::from_str_radix(low, 16).unwrap())
             {
                 if (0xdc00..=0xdfff).contains(&low) {
                     code = 0x10000 + ((code - 0xd800) << 10) + (low - 0xdc00);
@@ -255,13 +269,14 @@ impl<'a> Scanner<'a> {
             return Err(self.error_at(
                 escape_at,
                 format!("'\\{marker}{digits}' is an unpaired surrogate"),
-            ));
+                ));
         }
+
         let Some(char) = char::from_u32(code) else {
             return Err(self.error_at(
                 escape_at,
                 format!("'\\{marker}{digits}' is outside the Unicode range"),
-            ));
+                ));
         };
         out.push(char);
         Ok(i)
@@ -272,9 +287,11 @@ impl<'a> Scanner<'a> {
         let text = self.text;
         let bytes = self.bytes();
         let mut i = self.pos;
+
         while i < bytes.len() && !kind.ends(bytes[i]) && !is_comment_at(text, i) {
             i += 1;
         }
+
         let raw = &text[self.pos..i];
         self.pos = i;
         raw
@@ -290,9 +307,9 @@ fn is_comment_at(text: &str, i: usize) -> bool {
 fn hex_digits(text: &str, at: usize, width: usize) -> Option<&str> {
     let digits = text.get(at..at + width)?;
     digits
-        .bytes()
-        .all(|byte| byte.is_ascii_hexdigit())
-        .then_some(digits)
+    .bytes()
+    .all(|byte| byte.is_ascii_hexdigit())
+    .then_some(digits)
 }
 
 fn simple_escape(marker: u8) -> Option<char> {
@@ -308,7 +325,7 @@ fn simple_escape(marker: u8) -> Option<char> {
         b't' => '\t',
         b'v' => '\x0b',
         _ => return None,
-    })
+        })
 }
 
 /// A string shown the way Python's `repr()` does, for error messages.
@@ -320,6 +337,7 @@ pub fn repr(value: &str) -> String {
     };
     let mut out = String::new();
     out.push(quote);
+
     for char in value.chars() {
         match char {
             _ if char == quote || char == '\\' => {
@@ -335,6 +353,7 @@ pub fn repr(value: &str) -> String {
             _ => out.push(char),
         }
     }
+
     out.push(quote);
     out
 }
@@ -376,14 +395,17 @@ const KEYWORDS: [(&str, Value); 14] = [
 /// An empty or whitespace-only token means "no value" and yields null.
 pub fn interpret_bare(text: &str) -> Value {
     let token = trim_space(text);
+
     if token.is_empty() {
         return Value::Null;
     }
+
     for (word, value) in KEYWORDS {
         if token.eq_ignore_ascii_case(word) {
             return value;
         }
     }
+
     parse_number(token).unwrap_or_else(|| Value::String(token.to_string()))
 }
 
@@ -391,16 +413,20 @@ pub fn interpret_bare(text: &str) -> Value {
 fn grouped_digits(bytes: &[u8], mut i: usize) -> Option<usize> {
     loop {
         let run_start = i;
+
         while i < bytes.len() && bytes[i].is_ascii_digit() {
             i += 1;
         }
+
         if i == run_start {
             return None;
         }
+
         if i + 1 < bytes.len() && bytes[i] == b'_' && bytes[i + 1].is_ascii_digit() {
             i += 1;
             continue;
         }
+
         return Some(i);
     }
 }
@@ -410,21 +436,27 @@ fn radix_digits(base: u32, body: &[u8]) -> bool {
     if body.is_empty() {
         return false;
     }
+
     let mut i = 0;
+
     while i < body.len() {
         if body[i] == b'_' {
             i += 1;
         }
+
         if i >= body.len() || !(body[i] as char).is_digit(base) {
             return false;
         }
+
         i += 1;
     }
+
     true
 }
 
 fn is_float(bytes: &[u8]) -> bool {
     let mut i = usize::from(matches!(bytes.first(), Some(b'+' | b'-')));
+
     if bytes.get(i) == Some(&b'.') {
         let Some(end) = grouped_digits(bytes, i + 1) else {
             return false;
@@ -435,23 +467,29 @@ fn is_float(bytes: &[u8]) -> bool {
             return false;
         };
         i = end;
+
         if bytes.get(i) == Some(&b'.') {
             i += 1;
+
             if let Some(end) = grouped_digits(bytes, i) {
                 i = end;
             }
         }
     }
+
     if matches!(bytes.get(i), Some(b'e' | b'E')) {
         i += 1;
+
         if matches!(bytes.get(i), Some(b'+' | b'-')) {
             i += 1;
         }
+
         let Some(end) = grouped_digits(bytes, i) else {
             return false;
         };
         i = end;
     }
+
     i == bytes.len()
 }
 
@@ -468,32 +506,38 @@ fn parse_number(text: &str) -> Option<Value> {
             b'b' | b'B' => Some(2),
             _ => None,
         };
+
         if let Some(base) = base {
             if !radix_digits(base, &body[2..]) {
                 return None;
             }
+
             let digits = text[usize::from(signed) + 2..].replace('_', "");
             // Beyond i128 a radix literal stays a plain string, as in the Go and Zig ports
             let magnitude = i128::from_str_radix(&digits, base).ok()?;
             return Some(Value::Integer(if bytes[0] == b'-' {
                 -magnitude
-            } else {
-                magnitude
-            }));
+                } else {
+                    magnitude
+                }));
         }
     }
 
     let clean = text.replace('_', "");
+
     if grouped_digits(bytes, usize::from(signed)) == Some(bytes.len()) {
         // Beyond i128, fall back to a float, as the Go and Zig ports do
         if let Ok(integer) = clean.parse::<i128>() {
             return Some(Value::Integer(integer));
         }
+
         return clean.parse::<f64>().ok().map(Value::Float);
     }
+
     if is_float(bytes) {
         return clean.parse::<f64>().ok().map(Value::Float);
     }
+
     None
 }
 

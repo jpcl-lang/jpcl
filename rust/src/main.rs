@@ -145,6 +145,7 @@ impl Flags {
             return Ok(fallback);
         };
         let digits_only = !raw.is_empty() && raw.bytes().all(|byte| byte.is_ascii_digit());
+
         match raw.parse() {
             Ok(number) if digits_only => Ok(number),
             _ => Err(CliError::Usage(format!(
@@ -159,7 +160,7 @@ impl Flags {
             width: self.integer("width", 88)?,
             sort_keys: self.has("sort-keys"),
             ensure_ascii: false,
-        })
+            })
     }
 }
 
@@ -184,6 +185,7 @@ impl Cli<'_> {
             )?;
             return Ok(2);
         };
+
         match name.as_str() {
             "-h" | "--help" => {
                 self.stdout.write_all(MAIN_USAGE.as_bytes())?;
@@ -211,9 +213,11 @@ impl Cli<'_> {
                 writeln!(self.stdout, "{}", command.usage)?;
                 return Ok(0);
             }
+
             check_positionals(command, &positionals)?;
             (command.run)(self, &flags, &positionals)
-        });
+            });
+
         match outcome {
             Ok(code) => Ok(code),
             Err(CliError::Io(error)) => Err(error),
@@ -234,6 +238,7 @@ impl Cli<'_> {
         if path == "-" {
             return (self.stdin)().map(Some);
         }
+
         match fs::read(path) {
             Ok(bytes) => Ok(Some(bytes)),
             Err(error) => {
@@ -252,6 +257,7 @@ impl Cli<'_> {
         let Some(bytes) = self.read_bytes(path)? else {
             return Ok(None);
         };
+
         match jpcl::parse_bytes(&bytes, &ParseOptions::default()) {
             Ok(root) => Ok(Some(root)),
             Err(error) => {
@@ -267,6 +273,7 @@ impl Cli<'_> {
             self.stdout.write_all(text.as_bytes())?;
             return Ok(0);
         };
+
         if let Err(error) = fs::write(path, text) {
             writeln!(
                 self.stderr,
@@ -275,6 +282,7 @@ impl Cli<'_> {
             )?;
             return Ok(1);
         }
+
         Ok(0)
     }
 }
@@ -294,13 +302,15 @@ fn find_option<'c>(
     short: Option<char>,
 ) -> Option<&'c Opt> {
     const HELP: Opt = flag("help", Some('h'));
+
     if long == Some("help") || short == Some('h') {
         return Some(&HELP);
     }
+
     command.options.iter().find(|option| match long {
         Some(name) => option.long == name,
         None => short.is_some() && option.short == short,
-    })
+        })
 }
 
 fn parse_args(command: &Command, argv: &[String]) -> Result<(Flags, Vec<String>), CliError> {
@@ -314,6 +324,7 @@ fn parse_args(command: &Command, argv: &[String]) -> Result<(Flags, Vec<String>)
             positionals.push(arg.clone());
             continue;
         }
+
         if arg == "--" {
             options_done = true;
             continue;
@@ -349,39 +360,45 @@ fn parse_args(command: &Command, argv: &[String]) -> Result<(Flags, Vec<String>)
                     option.long
                 )));
             }
+
             flags.map.insert(option.long, None);
             continue;
         }
+
         let value = match inline_value {
             Some(value) => value.to_string(),
             None => args.next().cloned().ok_or_else(|| {
                 CliError::Usage(format!("argument --{}: expected one argument", option.long))
-            })?,
+                })?,
         };
         flags.map.insert(option.long, Some(value));
     }
+
     Ok((flags, positionals))
 }
 
 fn check_positionals(command: &Command, given: &[String]) -> Result<(), CliError> {
     let names = command.positionals;
     let variadic = names.last().is_some_and(|name| name.ends_with("..."));
+
     if given.len() < names.len() {
         let missing: Vec<&str> = names[given.len()..]
-            .iter()
-            .map(|name| name.trim_end_matches('.'))
-            .collect();
+        .iter()
+        .map(|name| name.trim_end_matches('.'))
+        .collect();
         return Err(CliError::Usage(format!(
             "the following arguments are required: {}",
             missing.join(", ")
         )));
     }
+
     if !variadic && given.len() > names.len() {
         return Err(CliError::Usage(format!(
             "unrecognized arguments: {}",
             given[names.len()..].join(" ")
         )));
     }
+
     Ok(())
 }
 
@@ -389,6 +406,7 @@ fn check_positionals(command: &Command, given: &[String]) -> Result<(), CliError
 
 fn run_check(cli: &mut Cli, flags: &Flags, files: &[String]) -> Result<u8, CliError> {
     let mut failures = 0;
+
     for path in files {
         if cli.read(path)?.is_none() {
             failures += 1;
@@ -396,29 +414,35 @@ fn run_check(cli: &mut Cli, flags: &Flags, files: &[String]) -> Result<u8, CliEr
             writeln!(cli.stdout, "ok  {path}")?;
         }
     }
+
     Ok(u8::from(failures > 0))
 }
 
 fn run_fmt(cli: &mut Cli, flags: &Flags, files: &[String]) -> Result<u8, CliError> {
     let format = flags.format()?;
     let mut failures = 0;
+
     for path in files {
         let Some(root) = cli.read(path)? else {
             failures += 1;
             continue;
         };
         let text = jpcl::stringify(&root, &format);
+
         if !flags.has("write") || path == "-" {
             cli.stdout.write_all(text.as_bytes())?;
             continue;
         }
+
         let Some(current) = cli.read_bytes(path)? else {
             failures += 1;
             continue;
         };
+
         if current == text.as_bytes() {
             continue;
         }
+
         if let Err(error) = jpcl::write_atomic(Path::new(path), text.as_bytes()) {
             writeln!(
                 cli.stderr,
@@ -428,8 +452,10 @@ fn run_fmt(cli: &mut Cli, flags: &Flags, files: &[String]) -> Result<u8, CliErro
             failures += 1;
             continue;
         }
+
         writeln!(cli.stderr, "reformatted {path}")?;
     }
+
     Ok(u8::from(failures > 0))
 }
 
@@ -442,10 +468,12 @@ fn run_get(cli: &mut Cli, flags: &Flags, positionals: &[String]) -> Result<u8, C
         writeln!(cli.stderr, "no such path: {path}")?;
         return Ok(1);
     };
+
     match value {
         Value::String(text) if flags.has("raw") => writeln!(cli.stdout, "{text}")?,
         _ => writeln!(cli.stdout, "{}", jpcl::to_json(value, 2))?,
     }
+
     Ok(0)
 }
 
@@ -464,8 +492,8 @@ fn run_from_json(cli: &mut Cli, flags: &Flags, positionals: &[String]) -> Result
         return Ok(1);
     };
     let parsed = std::str::from_utf8(&bytes)
-        .map_err(|_| "invalid JSON: not UTF-8".to_string())
-        .and_then(jpcl::from_json);
+    .map_err(|_| "invalid JSON: not UTF-8".to_string())
+    .and_then(jpcl::from_json);
     let root = match parsed {
         Ok(Value::Object(root)) => root,
         Ok(other) => {

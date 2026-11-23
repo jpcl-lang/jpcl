@@ -24,37 +24,43 @@ fn render(out: &mut String, value: &Value, indent: usize, level: usize) {
         Value::Float(float) if float.is_infinite() => {
             out.push_str(if *float > 0.0 {
                 "Infinity"
-            } else {
-                "-Infinity"
-            });
+                } else {
+                    "-Infinity"
+                });
         }
         Value::Float(float) => out.push_str(&format_finite(*float)),
         Value::String(text) => quote(out, text),
         Value::Array(items) if items.is_empty() => out.push_str("[]"),
         Value::Array(items) => {
             out.push('[');
+
             for (i, item) in items.iter().enumerate() {
                 if i > 0 {
                     out.push(',');
                 }
+
                 newline(out, indent * (level + 1));
                 render(out, item, indent, level + 1);
             }
+
             newline(out, indent * level);
             out.push(']');
         }
         Value::Object(object) if object.is_empty() => out.push_str("{}"),
         Value::Object(object) => {
             out.push('{');
+
             for (i, (key, child)) in object.iter().enumerate() {
                 if i > 0 {
                     out.push(',');
                 }
+
                 newline(out, indent * (level + 1));
                 quote(out, key);
                 out.push_str(": ");
                 render(out, child, indent, level + 1);
             }
+
             newline(out, indent * level);
             out.push('}');
         }
@@ -69,6 +75,7 @@ fn newline(out: &mut String, spaces: usize) {
 /// A JSON string literal, escaped as `JSON.stringify` does.
 fn quote(out: &mut String, text: &str) {
     out.push('"');
+
     for char in text.chars() {
         match char {
             '"' => out.push_str("\\\""),
@@ -84,6 +91,7 @@ fn quote(out: &mut String, text: &str) {
             _ => out.push(char),
         }
     }
+
     out.push('"');
 }
 
@@ -98,9 +106,11 @@ pub fn from_json(text: &str) -> Result<Value, String> {
     reader.skip_space();
     let value = reader.value()?;
     reader.skip_space();
+
     if reader.pos < reader.bytes.len() {
         return Err(reader.error("unexpected text after the value"));
     }
+
     Ok(value)
 }
 
@@ -124,9 +134,11 @@ impl Reader<'_> {
 
     fn eat(&mut self, byte: u8) -> bool {
         let found = self.bytes.get(self.pos) == Some(&byte);
+
         if found {
             self.pos += 1;
         }
+
         found
     }
 
@@ -147,6 +159,7 @@ impl Reader<'_> {
                         return Ok(value);
                     }
                 }
+
                 Err(self.error("expected a value"))
             }
         }
@@ -154,61 +167,76 @@ impl Reader<'_> {
 
     fn container(&mut self, is_object: bool) -> Result<Value, String> {
         self.depth += 1;
+
         if self.depth > crate::MAX_DEPTH {
             return Err(self.error("nesting too deep"));
         }
+
         self.pos += 1;
         let close = if is_object { b'}' } else { b']' };
         let mut object = Object::new();
         let mut items = Vec::new();
 
         self.skip_space();
+
         if !self.eat(close) {
             loop {
                 self.skip_space();
+
                 if is_object {
                     if self.bytes.get(self.pos) != Some(&b'"') {
                         return Err(self.error("expected a string key"));
                     }
+
                     let key = self.string()?;
                     self.skip_space();
+
                     if !self.eat(b':') {
                         return Err(self.error("expected ':'"));
                     }
+
                     self.skip_space();
                     let value = self.value()?;
                     object.insert(key, value);
                 } else {
                     items.push(self.value()?);
                 }
+
                 self.skip_space();
+
                 if self.eat(close) {
                     break;
                 }
+
                 if !self.eat(b',') {
                     return Err(self.error("expected ',' or a closing bracket"));
                 }
             }
         }
+
         self.depth -= 1;
         Ok(if is_object {
             Value::Object(object)
-        } else {
-            Value::Array(items)
-        })
+            } else {
+                Value::Array(items)
+            })
     }
 
     fn string(&mut self) -> Result<String, String> {
         self.pos += 1;
         let mut out = String::new();
+
         loop {
             let start = self.pos;
+
             while self.pos < self.bytes.len()
-                && !matches!(self.bytes[self.pos], b'"' | b'\\' | 0..=0x1f)
+            && !matches!(self.bytes[self.pos], b'"' | b'\\' | 0..=0x1f)
             {
                 self.pos += 1;
             }
+
             out.push_str(&self.text[start..self.pos]);
+
             match self.bytes.get(self.pos) {
                 Some(b'"') => {
                     self.pos += 1;
@@ -229,7 +257,7 @@ impl Reader<'_> {
                         Some(b't') => '\t',
                         Some(b'u') => self.unicode_escape()?,
                         _ => return Err(self.error("invalid escape")),
-                    });
+                        });
                 }
                 _ => return Err(self.error("unterminated string")),
             }
@@ -238,9 +266,9 @@ impl Reader<'_> {
 
     fn hex4(&mut self) -> Result<u32, String> {
         let digits = self
-            .text
-            .get(self.pos..self.pos + 4)
-            .ok_or_else(|| self.error("short \\u escape"))?;
+        .text
+        .get(self.pos..self.pos + 4)
+        .ok_or_else(|| self.error("short \\u escape"))?;
         let code = u32::from_str_radix(digits, 16).map_err(|_| self.error("invalid \\u escape"))?;
         self.pos += 4;
         Ok(code)
@@ -248,16 +276,20 @@ impl Reader<'_> {
 
     fn unicode_escape(&mut self) -> Result<char, String> {
         let high = self.hex4()?;
+
         if (0xd800..=0xdbff).contains(&high) && self.text[self.pos..].starts_with("\\u") {
             self.pos += 2;
             let low = self.hex4()?;
+
             if (0xdc00..=0xdfff).contains(&low) {
                 return Ok(
                     char::from_u32(0x10000 + ((high - 0xd800) << 10) + (low - 0xdc00)).unwrap(),
                 );
             }
+
             return Err(self.error("unpaired surrogate"));
         }
+
         char::from_u32(high).ok_or_else(|| self.error("unpaired surrogate"))
     }
 
@@ -265,47 +297,62 @@ impl Reader<'_> {
         let start = self.pos;
         self.eat(b'-');
         let digits_start = self.pos;
+
         while matches!(self.bytes.get(self.pos), Some(b'0'..=b'9')) {
             self.pos += 1;
         }
+
         let integer_digits = self.pos - digits_start;
+
         if integer_digits == 0 || (integer_digits > 1 && self.bytes[digits_start] == b'0') {
             return Err(self.error("invalid number"));
         }
+
         let mut is_integer = true;
+
         if self.eat(b'.') {
             is_integer = false;
             let fraction_start = self.pos;
+
             while matches!(self.bytes.get(self.pos), Some(b'0'..=b'9')) {
                 self.pos += 1;
             }
+
             if self.pos == fraction_start {
                 return Err(self.error("invalid number"));
             }
         }
+
         if matches!(self.bytes.get(self.pos), Some(b'e' | b'E')) {
             is_integer = false;
             self.pos += 1;
+
             if matches!(self.bytes.get(self.pos), Some(b'+' | b'-')) {
                 self.pos += 1;
             }
+
             let exponent_start = self.pos;
+
             while matches!(self.bytes.get(self.pos), Some(b'0'..=b'9')) {
                 self.pos += 1;
             }
+
             if self.pos == exponent_start {
                 return Err(self.error("invalid number"));
             }
         }
+
         let text = &self.text[start..self.pos];
+
         if is_integer {
             if let Ok(integer) = text.parse::<i128>() {
                 return Ok(Value::Integer(integer));
             }
         }
+
         text.parse::<f64>()
-            .map(Value::Float)
-            .map_err(|_| self.error("invalid number"))
+        .map(Value::Float)
+        .map_err(|_| self.error("invalid number"))
     }
 }
 
@@ -331,7 +378,7 @@ mod tests {
     #[test]
     fn json_input() {
         let value = from_json(r#" {"z": 1, "s": {"id": 123456789012345678901234, "f": -1.5e3, "u": "é😀"}, "a": [true, null]} "#)
-            .unwrap();
+        .unwrap();
         let Value::Object(root) = value else {
             panic!("expected an object")
         };

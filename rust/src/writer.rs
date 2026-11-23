@@ -45,10 +45,12 @@ impl Writer<'_> {
         for (key, value) in self.items(root) {
             if let Value::Object(section) = value {
                 let mut block = format!("[{}]", self.format_key(key));
+
                 for (child, child_value) in self.items(section) {
                     block.push('\n');
                     block.push_str(&self.entry(child, child_value, 0));
                 }
+
                 blocks.push(block);
             } else {
                 // A root scalar after a header would be read back into that section, so hoist it
@@ -59,18 +61,22 @@ impl Writer<'_> {
         if !preamble.is_empty() {
             blocks.insert(0, preamble.join("\n"));
         }
+
         if blocks.is_empty() {
             return String::new();
         }
+
         blocks.join("\n\n") + "\n"
     }
 
     /// One `key: value` line, possibly spanning several lines.
     fn entry(&self, key: &str, value: &Value, level: usize) -> String {
         let prefix = format!("{}{}:", self.pad(level), self.format_key(key));
+
         if *value == Value::Null {
             return prefix;
         }
+
         let column = prefix.chars().count() + 1;
         format!("{prefix} {}", self.render(value, level, column))
     }
@@ -90,6 +96,7 @@ impl Writer<'_> {
     /// A string literal with the minimum necessary escaping.
     fn format_string(&self, value: &str) -> String {
         let mut out = String::from('"');
+
         for char in value.chars() {
             match char {
                 '\\' => out.push_str("\\\\"),
@@ -100,14 +107,15 @@ impl Writer<'_> {
                 '\x08' => out.push_str("\\b"),
                 '\x0c' => out.push_str("\\f"),
                 _ if char < ' '
-                    || char == '\x7f'
-                    || (self.options.ensure_ascii && char > '\x7e') =>
+                || char == '\x7f'
+                || (self.options.ensure_ascii && char > '\x7e') =>
                 {
                     push_unicode_escape(&mut out, char);
                 }
                 _ => out.push(char),
             }
         }
+
         out.push('"');
         out
     }
@@ -129,11 +137,12 @@ impl Writer<'_> {
         if object.is_empty() {
             return "{}".into();
         }
+
         let body: Vec<String> = self
-            .items(object)
-            .into_iter()
-            .map(|(key, value)| self.entry(key, value, level + 1))
-            .collect();
+        .items(object)
+        .into_iter()
+        .map(|(key, value)| self.entry(key, value, level + 1))
+        .collect();
         format!("{{\n{}\n{}}}", body.join(",\n"), self.pad(level))
     }
 
@@ -142,14 +151,17 @@ impl Writer<'_> {
         if items.is_empty() {
             return "[]".into();
         }
+
         let parts: Vec<String> = items
-            .iter()
-            .map(|item| self.render(item, level + 1, column))
-            .collect();
+        .iter()
+        .map(|item| self.render(item, level + 1, column))
+        .collect();
         let inline = format!("[{}]", parts.join(", "));
+
         if !inline.contains('\n') && column + inline.chars().count() <= self.options.width {
             return inline;
         }
+
         let inner = self.pad(level + 1);
         let body: Vec<String> = parts.iter().map(|part| format!("{inner}{part}")).collect();
         format!("[\n{}\n{}]", body.join(",\n"), self.pad(level))
@@ -158,10 +170,12 @@ impl Writer<'_> {
     /// Entries in output order.
     fn items<'o>(&self, object: &'o Object) -> Vec<(&'o str, &'o Value)> {
         let mut items: Vec<_> = object.iter().collect();
+
         if self.options.sort_keys {
             // UTF-8 byte order is code point order
             items.sort_by(|left, right| left.0.cmp(right.0));
         }
+
         items
     }
 }
@@ -169,15 +183,16 @@ impl Writer<'_> {
 /// Keys matching `[A-Za-z0-9_][A-Za-z0-9_-]*` are written without quotes.
 fn is_bare_key(key: &str) -> bool {
     !key.is_empty()
-        && !key.starts_with('-')
-        && key
-            .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-')
+    && !key.starts_with('-')
+    && key
+    .bytes()
+    .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-')
 }
 
 /// `\uXXXX`, or a UTF-16 surrogate pair for astral characters.
 pub(crate) fn push_unicode_escape(out: &mut String, char: char) {
     let mut units = [0; 2];
+
     for unit in char.encode_utf16(&mut units) {
         let _ = write!(out, "\\u{unit:04x}");
     }
@@ -188,9 +203,11 @@ fn format_number(value: f64) -> String {
     if value.is_nan() {
         return "nan".into();
     }
+
     if value.is_infinite() {
         return if value > 0.0 { "inf" } else { "-inf" }.into();
     }
+
     format_finite(value)
 }
 
@@ -223,10 +240,12 @@ pub fn format_finite(value: f64) -> String {
             exponent.abs()
         );
     }
+
     if exponent < 0 {
         let zeros = "0".repeat((-exponent - 1) as usize);
         return format!("{sign}0.{zeros}{digits}");
     }
+
     let point = (exponent + 1) as usize;
     format!("{sign}{}.{}", &digits[..point], &digits[point..])
 }
@@ -250,6 +269,7 @@ mod tests {
             ("1.5e+300", 1.5e300),
             ("1234567890123456.8", 1234567890123456.8),
         ];
+
         for (expected, value) in cases {
             assert_eq!(format_finite(value), expected);
         }

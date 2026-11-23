@@ -57,13 +57,16 @@ impl Parser<'_> {
 
         loop {
             self.scanner.skip_ignorable()?;
+
             if self.scanner.eof() {
                 return Ok(root);
             }
+
             if self.scanner.peek() == Some(b'[') {
                 current = self.header(&mut root)?;
                 continue;
             }
+
             let entry = self.entry()?;
             let target = section_mut(&mut root, &current);
             self.store(target, entry)?;
@@ -80,34 +83,44 @@ impl Parser<'_> {
 
         let mut path: Vec<String> = Vec::new();
         let mut pending_dot = false;
+
         loop {
             let scanner = &mut self.scanner;
             scanner.skip_inline()?;
+
             if scanner.at_line_end() {
                 return Err(scanner.error_at(start, "unterminated section header".into()));
             }
+
             let byte = scanner.peek().unwrap();
+
             if byte == b']' {
                 if path.is_empty() {
                     return Err(scanner.error_at(start, "section header cannot be empty".into()));
                 }
+
                 if pending_dot {
                     return Err(scanner.error_here("section header segment cannot be empty".into()));
                 }
+
                 scanner.pos += 1;
                 break;
             }
+
             if byte == b'"' || byte == b'\'' {
                 path.push(scanner.scan_string()?);
             } else {
                 let segment = trim_space(scanner.scan_until(Terminators::Header));
+
                 if segment.is_empty() {
                     return Err(scanner.error_here("section header segment cannot be empty".into()));
                 }
+
                 path.push(segment.to_string());
             }
 
             scanner.skip_inline()?;
+
             match scanner.peek() {
                 Some(b'.') => {
                     scanner.pos += 1;
@@ -120,9 +133,11 @@ impl Parser<'_> {
                 }
                 _ => {}
             }
+
             if scanner.at_line_end() {
                 return Err(scanner.error_at(start, "unterminated section header".into()));
             }
+
             let found = scanner.describe_here();
             return Err(scanner.error_here(format!(
                 "expected '.' or ']' in section header, found {found}"
@@ -130,12 +145,14 @@ impl Parser<'_> {
         }
 
         self.scanner.skip_inline()?;
+
         if !self.scanner.at_line_end() {
             let found = self.scanner.describe_here();
             return Err(self
                 .scanner
                 .error_here(format!("unexpected {found} after section header")));
         }
+
         self.open_section(root, &path, start)?;
         Ok(path)
     }
@@ -143,16 +160,19 @@ impl Parser<'_> {
     /// Create or reuse the nested object addressed by `path`.
     fn open_section(&mut self, root: &mut Object, path: &[String], start: usize) -> Result<()> {
         let fresh = self.defined.insert(path.to_vec());
+
         if !fresh && self.duplicate_keys == DuplicateKeys::Error {
             let message = format!("section '[{}]' is defined twice", path.join("."));
             return Err(self.scanner.error_at(start, message));
         }
 
         let mut node = root;
+
         for (depth, part) in path.iter().enumerate() {
             if !node.contains_key(part) {
                 node.insert(part.clone(), Value::Object(Object::new()));
             }
+
             node = match node.get_mut(part) {
                 Some(Value::Object(child)) => child,
                 _ => {
@@ -165,6 +185,7 @@ impl Parser<'_> {
                 }
             };
         }
+
         Ok(())
     }
 
@@ -176,21 +197,24 @@ impl Parser<'_> {
         let key = self.key()?;
 
         self.scanner.skip_inline()?;
+
         if self.scanner.peek() != Some(b':') {
             let found = self.scanner.describe_here();
             let message = format!("expected ':' after key {}, found {found}", repr(&key));
             return Err(self.scanner.error_here(message));
         }
+
         self.scanner.pos += 1;
         Ok(Entry {
             key,
             value: self.optional_value()?,
             key_pos,
-        })
+            })
     }
 
     fn key(&mut self) -> Result<String> {
         let scanner = &mut self.scanner;
+
         match scanner.peek() {
             None => return Err(scanner.error_here("expected a key, found end of file".into())),
             Some(b'"' | b'\'') => return scanner.scan_string(),
@@ -200,21 +224,26 @@ impl Parser<'_> {
             }
             Some(_) => {}
         }
+
         let start = scanner.pos;
         let key = trim_space(scanner.scan_until(Terminators::Key));
+
         if key.is_empty() {
             let found = scanner.describe_here();
             return Err(scanner.error_at(start, format!("expected a key, found {found}")));
         }
+
         Ok(key.to_string())
     }
 
     /// The value after a `:`, or null when it is empty.
     fn optional_value(&mut self) -> Result<Value> {
         self.scanner.skip_inline()?;
+
         if self.scanner.peek() == Some(b',') || self.scanner.at_line_end() {
             return Ok(Value::Null);
         }
+
         self.value()
     }
 
@@ -224,18 +253,20 @@ impl Parser<'_> {
             b'[' => Value::Array(self.array()?),
             b'"' | b'\'' => Value::String(self.scanner.scan_string()?),
             _ => interpret_bare(self.scanner.scan_until(Terminators::Value)),
-        })
+            })
     }
 
     // -- containers ------------------------------------------------------
 
     fn enter(&mut self, start: usize) -> Result<()> {
         self.depth += 1;
+
         if self.depth > MAX_DEPTH {
             return Err(self
                 .scanner
                 .error_at(start, format!("nesting deeper than {MAX_DEPTH} levels")));
         }
+
         Ok(())
     }
 
@@ -247,6 +278,7 @@ impl Parser<'_> {
 
         loop {
             self.scanner.skip_ignorable()?;
+
             match self.scanner.peek() {
                 None => {
                     return Err(self
@@ -265,6 +297,7 @@ impl Parser<'_> {
                 }
                 Some(_) => {}
             }
+
             let entry = self.entry()?;
             self.store(&mut result, entry)?;
             self.separator(Some(b'}'))?;
@@ -279,6 +312,7 @@ impl Parser<'_> {
 
         loop {
             self.scanner.skip_ignorable()?;
+
             match self.scanner.peek() {
                 None => {
                     return Err(self
@@ -301,6 +335,7 @@ impl Parser<'_> {
                 }
                 Some(_) => {}
             }
+
             items.push(self.value()?);
             self.separator(Some(b']'))?;
         }
@@ -312,19 +347,25 @@ impl Parser<'_> {
     fn separator(&mut self, closing: Option<u8>) -> Result<()> {
         let scanner = &mut self.scanner;
         scanner.skip_inline()?;
+
         if scanner.at_line_end() {
             return Ok(());
         }
+
         let byte = scanner.peek().unwrap();
+
         if byte == b',' {
             scanner.pos += 1;
             return Ok(());
         }
+
         let found = scanner.describe_here();
+
         if let Some(close) = closing {
             if byte == close {
                 return Ok(());
             }
+
             let message = format!(
                 "expected ',', a line break or '{}' after value, found {found}",
                 close as char
@@ -335,6 +376,7 @@ impl Parser<'_> {
         if byte == b'[' {
             return Err(scanner.error_here("expected a line break before a section header".into()));
         }
+
         Err(scanner.error_here(format!(
             "expected ',' or a line break after value, found {found}"
         )))
@@ -352,6 +394,7 @@ impl Parser<'_> {
                 DuplicateKeys::Last => {}
             }
         }
+
         target.insert(entry.key, entry.value);
         Ok(())
     }
@@ -360,12 +403,14 @@ impl Parser<'_> {
 /// The section object at `path`, which `open_section` has already created.
 fn section_mut<'a>(root: &'a mut Object, path: &[String]) -> &'a mut Object {
     let mut node = root;
+
     for part in path {
         node = match node.get_mut(part) {
             Some(Value::Object(child)) => child,
             _ => unreachable!("open_section creates every part of the path"),
         };
     }
+
     node
 }
 
@@ -385,9 +430,11 @@ mod tests {
 
     fn at<'a>(root: &'a Object, path: &[&str]) -> &'a Value {
         let mut node = root.get(path[0]).unwrap();
+
         for part in &path[1..] {
             node = node.as_object().unwrap().get(part).unwrap();
         }
+
         node
     }
 
@@ -533,8 +580,8 @@ mod tests {
     #[test]
     fn display_renders_a_caret() {
         let error = parse("[SERVER_ID]\n\tprefix \"!\"\n", &ParseOptions::default())
-            .unwrap_err()
-            .with_filename("servers.jp");
+        .unwrap_err()
+        .with_filename("servers.jp");
         assert_eq!(
             error.to_string(),
             "servers.jp:2:9: expected ':' after key 'prefix', found '\"'\n    \tprefix \"!\"\n    \t       ^",

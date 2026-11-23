@@ -67,9 +67,11 @@ impl Object {
     /// Insert or replace. A replaced key keeps its original position.
     pub fn insert(&mut self, key: impl Into<String>, value: Value) -> Option<Value> {
         let key = key.into();
+
         if let Some(&at) = self.index.get(&key) {
             return Some(std::mem::replace(&mut self.entries[at].1, value));
         }
+
         self.index.insert(key.clone(), self.entries.len());
         self.entries.push((key, value));
         None
@@ -81,8 +83,8 @@ impl Object {
 
     pub fn iter(&self) -> impl Iterator<Item = (&str, &Value)> {
         self.entries
-            .iter()
-            .map(|(key, value)| (key.as_str(), value))
+        .iter()
+        .map(|(key, value)| (key.as_str(), value))
     }
 }
 
@@ -96,9 +98,11 @@ impl PartialEq for Object {
 impl FromIterator<(String, Value)> for Object {
     fn from_iter<T: IntoIterator<Item = (String, Value)>>(items: T) -> Self {
         let mut object = Object::new();
+
         for (key, value) in items {
             object.insert(key, value);
         }
+
         object
     }
 }

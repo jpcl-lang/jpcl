@@ -36,9 +36,9 @@ impl DecodeError {
             filename: None,
             excerpt: (!text.is_empty()).then(|| {
                 text[line_start..line_end]
-                    .trim_end_matches('\r')
-                    .to_string()
-            }),
+                .trim_end_matches('\r')
+                .to_string()
+                }),
         }
     }
 
@@ -62,10 +62,10 @@ impl fmt::Display for DecodeError {
         };
         // Keep tabs in the caret prefix so the marker stays aligned
         let prefix: String = source
-            .chars()
-            .take(self.col - 1)
-            .map(|char| if char == '\t' { '\t' } else { ' ' })
-            .collect();
+        .chars()
+        .take(self.col - 1)
+        .map(|char| if char == '\t' { '\t' } else { ' ' })
+        .collect();
         write!(formatter, "\n    {source}\n    {prefix}^")
     }
 }
