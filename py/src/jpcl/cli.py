@@ -142,10 +142,12 @@ def build_parser() -> argparse.ArgumentParser:
     check.add_argument("-q", "--quiet", action="store_true", help="only report errors")
     check.set_defaults(func=_cmd_check)
 
-    fmt = subcommands.add_parser("fmt", help="reformat .jp files")
+    fmt = subcommands.add_parser(
+        "fmt", aliases=["format"], help="reformat .jp files"
+    )
     fmt.add_argument("files", nargs="+")
     fmt.add_argument(
-        "-w", "--write", action="store_true", help="rewrite files in place"
+        "-w", "--write", action="store_true", help="rewrite files in place (removes comments)"
     )
     add_format_flags(fmt)
     fmt.set_defaults(func=_cmd_fmt)

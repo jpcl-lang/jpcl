@@ -109,6 +109,6 @@ class MainTest {
                 + "jpcl get: error: the following arguments are required: file, path\n",
             run(List.of("get"), "").stderr()
         );
-        assertEquals("jpcl 2.0.0\n", run(List.of("--version"), "").stdout());
+        assertEquals("jpcl 2.1.0\n", run(List.of("--version"), "").stdout());
     }
 }

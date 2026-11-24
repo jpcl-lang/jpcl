@@ -21,7 +21,7 @@ const checkUsage = `usage: jpcl check [-q] files...
 
 const fmtUsage = `usage: jpcl fmt [-w] [--indent N] [--width N] [--sort-keys] files...
 
-  -w, --write     rewrite files in place
+  -w, --write     rewrite files in place (removes comments)
   --indent N      spaces per level (default 2)
   --width N       column budget for inline arrays (default 88)
   --sort-keys     sort keys alphabetically`
@@ -51,7 +51,7 @@ type command struct {
 
 var registry = []command{
 	{"check", "validate .jp files", cmdCheck},
-	{"fmt", "reformat .jp files", cmdFmt},
+	{"fmt", "reformat .jp files (alias: format)", cmdFmt},
 	{"get", "print one value by dotted path", cmdGet},
 	{"to-json", "convert .jp to JSON", cmdToJSON},
 	{"from-json", "convert JSON to .jp", cmdFromJSON},
@@ -68,6 +68,8 @@ func run(args []string, stdout, stderr io.Writer, stdin io.Reader) int {
 	}
 	name, rest := args[0], args[1:]
 	switch name {
+	case "format":
+		name = "fmt"
 	case "-h", "--help":
 		fmt.Fprint(stdout, mainUsage())
 		return 0
@@ -184,8 +186,8 @@ func cmdCheck(args []string, stdout, stderr io.Writer, stdin io.Reader) int {
 func cmdFmt(args []string, stdout, stderr io.Writer, stdin io.Reader) int {
 	fs := flag.NewFlagSet("fmt", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
-	write := fs.Bool("w", false, "rewrite files in place")
-	fs.BoolVar(write, "write", false, "rewrite files in place")
+	write := fs.Bool("w", false, "rewrite files in place (removes comments)")
+	fs.BoolVar(write, "write", false, "rewrite files in place (removes comments)")
 	indent := fs.Int("indent", 2, "spaces per level")
 	width := fs.Int("width", 88, "column budget for inline arrays")
 	sortKeys := fs.Bool("sort-keys", false, "sort keys alphabetically")

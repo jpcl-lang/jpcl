@@ -82,10 +82,10 @@ const COMMANDS: Record<string, Command> = {
   },
 
   fmt: {
-    help: "reformat .jp files",
+    help: "reformat .jp files (alias: format)",
     usage: `usage: jpcl fmt [-w] [--indent N] [--width N] [--sort-keys] files...
 
-  -w, --write     rewrite files in place
+  -w, --write     rewrite files in place (removes comments)
 ${FORMAT_HELP}`,
     options: { write: { type: "boolean", short: "w" }, ...FORMAT_OPTIONS },
     positionals: ["files..."],
@@ -208,7 +208,8 @@ options:
  * invalid usage.
  */
 export function main(argv: readonly string[] = process.argv.slice(2), io: CliIO = processIO): number {
-  const [name, ...rest] = argv;
+  const [requestedName, ...rest] = argv;
+  const name = requestedName === "format" ? "fmt" : requestedName;
   if (name === undefined) {
     io.stderr(`${MAIN_USAGE.split("\n")[0]}\njpcl: error: a command is required\n`);
     return 2;

@@ -21,7 +21,7 @@ import java.util.Optional;
 /** jpcl: a hybrid JSON/TOML configuration language ({@code .jp} files). */
 public final class Jpcl {
     /** The version of the {@code .jp} format and of this library. */
-    public static final String VERSION = "2.0.0";
+    public static final String VERSION = "2.1.0";
 
     /** Conventional file extension. */
     public static final String SUFFIX = ".jp";

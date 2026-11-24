@@ -327,6 +327,20 @@ for browsers, workers and edge runtimes:
 import { loads, dumps, JPDecodeError } from "jpcl-lang/core";
 ```
 
+### Syntax highlighting
+
+Register the JPCL grammar with Highlight.js to highlight `.jp` source:
+
+```ts
+import hljs from "highlight.js";
+import jpcl from "jpcl-lang/highlightjs";
+
+hljs.registerLanguage("jpcl", jpcl);
+const highlighted = hljs.highlight(source, { language: "jpcl" }).value;
+```
+
+Use `jpcl` or `jp` as the language name.
+
 ---
 
 ## Python
@@ -884,7 +898,7 @@ Every implementation ships the same `jpcl` command:
 # Validate; non-zero exit on failure
 jpcl check data/*.jp
 
-# Reformat in place
+# Reformat in place (removes comments)
 jpcl fmt -w data/servers.jp
 
 # Read one value
@@ -894,7 +908,7 @@ jpcl to-json -o out.json data/servers.jp
 jpcl from-json -o data/servers.jp out.json
 ```
 
-`-` reads stdin in place of a filename.
+`-` reads stdin in place of a filename. `jpcl format` is an alias for `jpcl fmt`.
 
 | Implementation | Get the command |
 | --- | --- |

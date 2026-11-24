@@ -27,7 +27,7 @@ class JpclTest {
 
     @Test
     void versionMatchesTheOtherPorts() {
-        assertEquals("2.0.0", Jpcl.VERSION);
+        assertEquals("2.1.0", Jpcl.VERSION);
     }
 
     @Test

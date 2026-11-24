@@ -1,6 +1,6 @@
 {
   "name": "jpcl-lang",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "A hybrid JSON/TOML configuration language (.jp files)",
   "keywords": [
     "config",
@@ -32,6 +32,10 @@
       "types": "./dist/core.d.ts",
       "default": "./dist/core.js"
     },
+    "./highlightjs": {
+      "types": "./dist/highlightjs.d.ts",
+      "default": "./dist/highlightjs.js"
+    },
     "./package.json": "./package.json"
   },
   "main": "./dist/index.js",
@@ -55,6 +59,7 @@
   "devDependencies": {
     "@types/bun": "^1.4.5",
     "@types/node": "^26.6.6",
+    "highlight.js": "11.11.1",
     "typescript": "^7.0.2"
   }
 }

@@ -26,7 +26,7 @@ pub const parseLeaky = parser.parseLeaky;
 pub const stringify = writer.stringify;
 pub const toJson = @import("json.zig").toJson;
 
-pub const version = "2.0.0";
+pub const version = "2.1.0";
 
 /// Conventional file extension.
 pub const suffix = ".jp";

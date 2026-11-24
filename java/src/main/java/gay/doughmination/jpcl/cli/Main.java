@@ -37,7 +37,7 @@ public final class Main {
 
         commands:
           check       validate .jp files
-          fmt         reformat .jp files
+          fmt         reformat .jp files (alias: format)
           get         print one value by dotted path
           to-json     convert .jp to JSON
           from-json   convert JSON to .jp
@@ -112,7 +112,7 @@ public final class Main {
         new Command(
             "fmt",
             "usage: jpcl fmt [-w] [--indent N] [--width N] [--sort-keys] files...\n\n"
-                + "  -w, --write     rewrite files in place\n"
+                + "  -w, --write     rewrite files in place (removes comments)\n"
                 + FORMAT_HELP,
             withFormatOptions(Opt.flag("write", 'w')),
             List.of("files..."),
@@ -227,7 +227,8 @@ public final class Main {
             err(firstLine(MAIN_USAGE) + "\njpcl: error: a command is required\n");
             return 2;
         }
-        String name = argv.getFirst();
+        String requestedName = argv.getFirst();
+        String name = requestedName.equals("format") ? "fmt" : requestedName;
         if (name.equals("-h") || name.equals("--help")) {
             out(MAIN_USAGE);
             return 0;

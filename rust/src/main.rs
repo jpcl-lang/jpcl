@@ -15,7 +15,7 @@ Work with .jp configuration files.
 
 commands:
   check       validate .jp files
-  fmt         reformat .jp files
+  fmt         reformat .jp files (alias: format)
   get         print one value by dotted path
   to-json     convert .jp to JSON
   from-json   convert JSON to .jp
@@ -82,7 +82,7 @@ fn commands() -> Vec<Command> {
         Command {
             name: "fmt",
             usage: format!(
-                "usage: jpcl fmt [-w] [--indent N] [--width N] [--sort-keys] files...\n\n  -w, --write     rewrite files in place\n{FORMAT_HELP}"
+                "usage: jpcl fmt [-w] [--indent N] [--width N] [--sort-keys] files...\n\n  -w, --write     rewrite files in place (removes comments)\n{FORMAT_HELP}"
             ),
             options: [flag("write", Some('w'))].into_iter().chain(format_options()).collect(),
             positionals: &["files..."],
@@ -198,6 +198,7 @@ impl Cli<'_> {
             _ => {}
         }
 
+        let name = if name == "format" { "fmt" } else { name.as_str() };
         let all = commands();
         let Some(command) = all.iter().find(|command| command.name == name) else {
             writeln!(

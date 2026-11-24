@@ -43,7 +43,7 @@ const main_usage =
     \\
     \\commands:
     \\  check       validate .jp files
-    \\  fmt         reformat .jp files
+    \\  fmt         reformat .jp files (alias: format)
     \\  get         print one value by dotted path
     \\  to-json     convert .jp to JSON
     \\  from-json   convert JSON to .jp
@@ -96,7 +96,7 @@ const commands = [_]Command{
     .{
         .name = "fmt",
         .usage = "usage: jpcl fmt [-w] [--indent N] [--width N] [--sort-keys] files...\n\n" ++
-            "  -w, --write     rewrite files in place\n" ++ format_help,
+            "  -w, --write     rewrite files in place (removes comments)\n" ++ format_help,
         .options = &([_]Option{.{ .long = "write", .short = 'w' }} ++ format_options),
         .positionals = &.{"files..."},
         .run = runFmt,
@@ -196,7 +196,7 @@ const Cli = struct {
             try self.stderr.print("{s}\njpcl: error: a command is required\n", .{first_line});
             return 2;
         }
-        const name = argv[0];
+        const name = if (std.mem.eql(u8, argv[0], "format")) "fmt" else argv[0];
         if (std.mem.eql(u8, name, "-h") or std.mem.eql(u8, name, "--help")) {
             try self.stdout.writeAll(main_usage);
             return 0;

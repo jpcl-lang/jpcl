@@ -119,7 +119,7 @@ mod tests {
 
     #[test]
     fn version_matches_the_other_ports() {
-        assert_eq!(VERSION, "2.0.0");
+        assert_eq!(VERSION, "2.1.0");
     }
 
     #[test]
