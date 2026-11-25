@@ -6,7 +6,10 @@ name: Publish (rust)
 # crates.io only allows a trusted publisher on a crate that already exists, so
 # the very first version has to be published by hand with `cargo publish`.
 
+# Release all ports can also dispatch this workflow on a rust release tag.
+
 on:
+  workflow_dispatch:
   push:
     tags:
       - "rust/v[0-9]+.[0-9]+.[0-9]+"
@@ -16,6 +19,7 @@ permissions: {}
 jobs:
   publish:
     name: Publish to crates.io
+    if: github.ref_type == 'tag' && startsWith(github.ref_name, 'rust/v')
     runs-on: ubuntu-latest
     environment:
       name: crates-io

@@ -52,8 +52,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
             tag="$GITHUB_REF_NAME"
+            if [[ ! "$tag" =~ ^go/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::Expected a go/vX.Y.Z tag, got $tag"
+              exit 1
+            fi
           else
             latest=$(git tag -l 'go/v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n1)
             latest=${latest:-go/v0.0.0}

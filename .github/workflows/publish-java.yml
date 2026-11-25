@@ -6,7 +6,10 @@ name: Publish (java)
 #   CENTRAL_USERNAME, CENTRAL_PASSWORD  a Central Portal user token
 #   GPG_PRIVATE_KEY, GPG_PASSPHRASE     the armoured signing key and its passphrase
 
+# Release all ports can also dispatch this workflow on a java release tag.
+
 on:
+  workflow_dispatch:
   push:
     tags:
       - "java/v[0-9]+.[0-9]+.[0-9]+"
@@ -16,6 +19,7 @@ permissions: {}
 jobs:
   publish:
     name: Publish to Maven Central
+    if: github.ref_type == 'tag' && startsWith(github.ref_name, 'java/v')
     runs-on: ubuntu-latest
     environment:
       name: maven-central

@@ -1,0 +1,83 @@
+# .github/workflows/release-all.yml
+name: Release all ports
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version already set in all six ports (for example, 2.1.0)
+        type: string
+        required: true
+
+permissions: {}
+
+concurrency:
+  group: jpcl-release-all
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Verify release versions
+    if: github.ref_name == github.event.repository.default_branch && github.ref_type == 'branch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check the six source versions
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import tomllib
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          version = os.environ["VERSION"]
+          if not re.fullmatch(r"(?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*)){2}", version):
+              raise SystemExit("Enter a version in X.Y.Z form, without a leading v.")
+
+          def toml(path):
+              return tomllib.loads(Path(path).read_text())
+
+          def source_version(path, pattern):
+              match = re.search(pattern, Path(path).read_text(), re.MULTILINE)
+              return match.group(1) if match else None
+
+          versions = {
+              "npm": json.loads(Path("npm/package.json").read_text())["version"],
+              "py": toml("py/pyproject.toml")["project"]["version"],
+              "go": source_version("go/version.go", r'^var Version = "([^"]+)"$'),
+              "rust": toml("rust/Cargo.toml")["package"]["version"],
+              "zig": source_version("zig/build.zig.zon", r'^\s*\.version = "([^"]+)",'),
+              "java": ET.parse("java/pom.xml").findtext("{*}version"),
+          }
+          mismatches = [f"{port}: {value}" for port, value in versions.items() if value != version]
+          if mismatches:
+              raise SystemExit(f"Expected {version}; found " + ", ".join(mismatches))
+          PY
+
+  publish:
+    name: Release ${{ matrix.port }}
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        port: [go, java, npm, py, rust, zig]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Dispatch publisher and wait for its result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PORT: ${{ matrix.port }}
+          VERSION: ${{ inputs.version }}
+        run: bash .github/scripts/release-port.sh

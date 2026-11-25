@@ -42,7 +42,7 @@ jobs:
         run: uv run pytest -q
 
       - name: Verify the release tag matches the project version
-        if: github.event_name == 'release'
+        if: github.ref_type == 'tag'
         run: |
           version=$(uv run python -c "import tomllib, pathlib; print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])")
           tag="${GITHUB_REF_NAME#py/v}"
