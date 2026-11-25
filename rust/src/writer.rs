@@ -107,8 +107,8 @@ impl Writer<'_> {
                 '\x08' => out.push_str("\\b"),
                 '\x0c' => out.push_str("\\f"),
                 _ if char < ' '
-                || char == '\x7f'
-                || (self.options.ensure_ascii && char > '\x7e') =>
+                    || char == '\x7f'
+                    || (self.options.ensure_ascii && char > '\x7e') =>
                 {
                     push_unicode_escape(&mut out, char);
                 }
@@ -139,10 +139,10 @@ impl Writer<'_> {
         }
 
         let body: Vec<String> = self
-        .items(object)
-        .into_iter()
-        .map(|(key, value)| self.entry(key, value, level + 1))
-        .collect();
+            .items(object)
+            .into_iter()
+            .map(|(key, value)| self.entry(key, value, level + 1))
+            .collect();
         format!("{{\n{}\n{}}}", body.join(",\n"), self.pad(level))
     }
 
@@ -153,9 +153,9 @@ impl Writer<'_> {
         }
 
         let parts: Vec<String> = items
-        .iter()
-        .map(|item| self.render(item, level + 1, column))
-        .collect();
+            .iter()
+            .map(|item| self.render(item, level + 1, column))
+            .collect();
         let inline = format!("[{}]", parts.join(", "));
 
         if !inline.contains('\n') && column + inline.chars().count() <= self.options.width {
@@ -183,10 +183,10 @@ impl Writer<'_> {
 /// Keys matching `[A-Za-z0-9_][A-Za-z0-9_-]*` are written without quotes.
 fn is_bare_key(key: &str) -> bool {
     !key.is_empty()
-    && !key.starts_with('-')
-    && key
-    .bytes()
-    .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-')
+        && !key.starts_with('-')
+        && key
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-')
 }
 
 /// `\uXXXX`, or a UTF-16 surrogate pair for astral characters.

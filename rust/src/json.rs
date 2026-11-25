@@ -24,9 +24,9 @@ fn render(out: &mut String, value: &Value, indent: usize, level: usize) {
         Value::Float(float) if float.is_infinite() => {
             out.push_str(if *float > 0.0 {
                 "Infinity"
-                } else {
-                    "-Infinity"
-                });
+            } else {
+                "-Infinity"
+            });
         }
         Value::Float(float) => out.push_str(&format_finite(*float)),
         Value::String(text) => quote(out, text),
@@ -217,9 +217,9 @@ impl Reader<'_> {
         self.depth -= 1;
         Ok(if is_object {
             Value::Object(object)
-            } else {
-                Value::Array(items)
-            })
+        } else {
+            Value::Array(items)
+        })
     }
 
     fn string(&mut self) -> Result<String, String> {
@@ -230,7 +230,7 @@ impl Reader<'_> {
             let start = self.pos;
 
             while self.pos < self.bytes.len()
-            && !matches!(self.bytes[self.pos], b'"' | b'\\' | 0..=0x1f)
+                && !matches!(self.bytes[self.pos], b'"' | b'\\' | 0..=0x1f)
             {
                 self.pos += 1;
             }
@@ -257,7 +257,7 @@ impl Reader<'_> {
                         Some(b't') => '\t',
                         Some(b'u') => self.unicode_escape()?,
                         _ => return Err(self.error("invalid escape")),
-                        });
+                    });
                 }
                 _ => return Err(self.error("unterminated string")),
             }
@@ -266,9 +266,9 @@ impl Reader<'_> {
 
     fn hex4(&mut self) -> Result<u32, String> {
         let digits = self
-        .text
-        .get(self.pos..self.pos + 4)
-        .ok_or_else(|| self.error("short \\u escape"))?;
+            .text
+            .get(self.pos..self.pos + 4)
+            .ok_or_else(|| self.error("short \\u escape"))?;
         let code = u32::from_str_radix(digits, 16).map_err(|_| self.error("invalid \\u escape"))?;
         self.pos += 4;
         Ok(code)
@@ -351,8 +351,8 @@ impl Reader<'_> {
         }
 
         text.parse::<f64>()
-        .map(Value::Float)
-        .map_err(|_| self.error("invalid number"))
+            .map(Value::Float)
+            .map_err(|_| self.error("invalid number"))
     }
 }
 

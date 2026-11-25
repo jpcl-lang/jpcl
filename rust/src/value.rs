@@ -83,8 +83,8 @@ impl Object {
 
     pub fn iter(&self) -> impl Iterator<Item = (&str, &Value)> {
         self.entries
-        .iter()
-        .map(|(key, value)| (key.as_str(), value))
+            .iter()
+            .map(|(key, value)| (key.as_str(), value))
     }
 }
 

@@ -40,7 +40,7 @@ pub fn parse_bytes(bytes: &[u8], options: &ParseOptions) -> Result<Object, Decod
                 "invalid UTF-8".into(),
                 &text[start..],
                 error.valid_up_to() - start,
-                ))
+            ))
         }
     }
 }
@@ -51,9 +51,9 @@ pub fn load(path: impl AsRef<Path>, options: &ParseOptions) -> Result<Object, Er
     let bytes = fs::read(path).map_err(|source| Error::Io {
         path: path.to_path_buf(),
         source,
-        })?;
+    })?;
     parse_bytes(&bytes, options)
-    .map_err(|error| error.with_filename(path.display().to_string()).into())
+        .map_err(|error| error.with_filename(path.display().to_string()).into())
 }
 
 /// Serialise `root` and write it to `path` atomically, creating missing parent folders.
@@ -66,7 +66,7 @@ pub fn dump(
     write_atomic(path, stringify(root, options).as_bytes()).map_err(|source| Error::Io {
         path: path.to_path_buf(),
         source,
-        })
+    })
 }
 
 /// Write to a temporary file beside `path`, then rename it over `path`, so readers never see half a file.
@@ -84,7 +84,7 @@ pub fn write_atomic(path: &Path, data: &[u8]) -> std::io::Result<()> {
         file.write_all(data)?;
         file.sync_all()?;
         fs::rename(&temporary, path)
-        })();
+    })();
 
     if result.is_err() {
         let _ = fs::remove_file(&temporary);

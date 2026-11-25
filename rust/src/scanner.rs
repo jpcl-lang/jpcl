@@ -185,7 +185,7 @@ impl<'a> Scanner<'a> {
                 return Err(self.error_at(
                     start,
                     "unterminated string literal (use \\n for a line break)".into(),
-                    ));
+                ));
             }
 
             if byte != b'\\' {
@@ -249,14 +249,14 @@ impl<'a> Scanner<'a> {
                 escape_at,
                 format!("'\\{marker}' escape needs {width} hex digits"),
             )
-            })?;
+        })?;
         let mut code = u32::from_str_radix(digits, 16).unwrap();
         let mut i = marker_at + 1 + width;
 
         // Recombine a UTF-16 surrogate pair, as JSON encoders emit them
         if marker == 'u' && (0xd800..=0xdbff).contains(&code) && text[i..].starts_with("\\u") {
             if let Some(low) =
-            hex_digits(text, i + 2, 4).map(|low| u32::from_str_radix(low, 16).unwrap())
+                hex_digits(text, i + 2, 4).map(|low| u32::from_str_radix(low, 16).unwrap())
             {
                 if (0xdc00..=0xdfff).contains(&low) {
                     code = 0x10000 + ((code - 0xd800) << 10) + (low - 0xdc00);
@@ -269,14 +269,14 @@ impl<'a> Scanner<'a> {
             return Err(self.error_at(
                 escape_at,
                 format!("'\\{marker}{digits}' is an unpaired surrogate"),
-                ));
+            ));
         }
 
         let Some(char) = char::from_u32(code) else {
             return Err(self.error_at(
                 escape_at,
                 format!("'\\{marker}{digits}' is outside the Unicode range"),
-                ));
+            ));
         };
         out.push(char);
         Ok(i)
@@ -307,9 +307,9 @@ fn is_comment_at(text: &str, i: usize) -> bool {
 fn hex_digits(text: &str, at: usize, width: usize) -> Option<&str> {
     let digits = text.get(at..at + width)?;
     digits
-    .bytes()
-    .all(|byte| byte.is_ascii_hexdigit())
-    .then_some(digits)
+        .bytes()
+        .all(|byte| byte.is_ascii_hexdigit())
+        .then_some(digits)
 }
 
 fn simple_escape(marker: u8) -> Option<char> {
@@ -325,7 +325,7 @@ fn simple_escape(marker: u8) -> Option<char> {
         b't' => '\t',
         b'v' => '\x0b',
         _ => return None,
-        })
+    })
 }
 
 /// A string shown the way Python's `repr()` does, for error messages.
@@ -517,9 +517,9 @@ fn parse_number(text: &str) -> Option<Value> {
             let magnitude = i128::from_str_radix(&digits, base).ok()?;
             return Some(Value::Integer(if bytes[0] == b'-' {
                 -magnitude
-                } else {
-                    magnitude
-                }));
+            } else {
+                magnitude
+            }));
         }
     }
 

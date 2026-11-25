@@ -160,7 +160,7 @@ impl Flags {
             width: self.integer("width", 88)?,
             sort_keys: self.has("sort-keys"),
             ensure_ascii: false,
-            })
+        })
     }
 }
 
@@ -198,7 +198,11 @@ impl Cli<'_> {
             _ => {}
         }
 
-        let name = if name == "format" { "fmt" } else { name.as_str() };
+        let name = if name == "format" {
+            "fmt"
+        } else {
+            name.as_str()
+        };
         let all = commands();
         let Some(command) = all.iter().find(|command| command.name == name) else {
             writeln!(
@@ -217,7 +221,7 @@ impl Cli<'_> {
 
             check_positionals(command, &positionals)?;
             (command.run)(self, &flags, &positionals)
-            });
+        });
 
         match outcome {
             Ok(code) => Ok(code),
@@ -311,7 +315,7 @@ fn find_option<'c>(
     command.options.iter().find(|option| match long {
         Some(name) => option.long == name,
         None => short.is_some() && option.short == short,
-        })
+    })
 }
 
 fn parse_args(command: &Command, argv: &[String]) -> Result<(Flags, Vec<String>), CliError> {
@@ -370,7 +374,7 @@ fn parse_args(command: &Command, argv: &[String]) -> Result<(Flags, Vec<String>)
             Some(value) => value.to_string(),
             None => args.next().cloned().ok_or_else(|| {
                 CliError::Usage(format!("argument --{}: expected one argument", option.long))
-                })?,
+            })?,
         };
         flags.map.insert(option.long, Some(value));
     }
@@ -384,9 +388,9 @@ fn check_positionals(command: &Command, given: &[String]) -> Result<(), CliError
 
     if given.len() < names.len() {
         let missing: Vec<&str> = names[given.len()..]
-        .iter()
-        .map(|name| name.trim_end_matches('.'))
-        .collect();
+            .iter()
+            .map(|name| name.trim_end_matches('.'))
+            .collect();
         return Err(CliError::Usage(format!(
             "the following arguments are required: {}",
             missing.join(", ")
@@ -493,8 +497,8 @@ fn run_from_json(cli: &mut Cli, flags: &Flags, positionals: &[String]) -> Result
         return Ok(1);
     };
     let parsed = std::str::from_utf8(&bytes)
-    .map_err(|_| "invalid JSON: not UTF-8".to_string())
-    .and_then(jpcl::from_json);
+        .map_err(|_| "invalid JSON: not UTF-8".to_string())
+        .and_then(jpcl::from_json);
     let root = match parsed {
         Ok(Value::Object(root)) => root,
         Ok(other) => {

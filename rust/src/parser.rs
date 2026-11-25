@@ -209,7 +209,7 @@ impl Parser<'_> {
             key,
             value: self.optional_value()?,
             key_pos,
-            })
+        })
     }
 
     fn key(&mut self) -> Result<String> {
@@ -253,7 +253,7 @@ impl Parser<'_> {
             b'[' => Value::Array(self.array()?),
             b'"' | b'\'' => Value::String(self.scanner.scan_string()?),
             _ => interpret_bare(self.scanner.scan_until(Terminators::Value)),
-            })
+        })
     }
 
     // -- containers ------------------------------------------------------
@@ -580,8 +580,8 @@ mod tests {
     #[test]
     fn display_renders_a_caret() {
         let error = parse("[SERVER_ID]\n\tprefix \"!\"\n", &ParseOptions::default())
-        .unwrap_err()
-        .with_filename("servers.jp");
+            .unwrap_err()
+            .with_filename("servers.jp");
         assert_eq!(
             error.to_string(),
             "servers.jp:2:9: expected ':' after key 'prefix', found '\"'\n    \tprefix \"!\"\n    \t       ^",
